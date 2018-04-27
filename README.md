@@ -6,9 +6,13 @@ Code to calculate the FEXERJ rating based on chess-results pages. Code is still 
 ## How to use
 
 There are two CSV needed: one for players with established rating and another for players with temporary rating. The separator should be a semicolon ";". The first CSV should have the following header/columns:
+
 Id_No;Title;Name;Rtg_Nat;ClubName;Birthday;Sex;Fed;TotalNumGames
+
 while the second CSV should have:
+
 Id_No;Title;Name;Rtg_Nat;ClubName;Birthday;Sex;Fed;TotalNumGames;AvgOpponRating;TotalPoints
+
 
 The user should run the following command:
 
