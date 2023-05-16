@@ -20,9 +20,7 @@ _CURRENT_TOURNAMENT_SNR = 0
 
 
 class FexerjRatingCycle:
-
     def __init__(self, tournaments_file, first_item, items_to_process, initial_rating_filepath):
-
         self.tournaments_file = tournaments_file
         self.first_item = first_item
         self.items_to_process = items_to_process
@@ -37,20 +35,13 @@ class FexerjRatingCycle:
             reader = csv.reader(f, delimiter=_CSV_DELIMITER)
             self.tournaments = list(reader)[1:]
             for tournament in self.tournaments:
-
                 final_rating_filepath = "RatingList_after_%s.csv" % (tournament[0])
-
                 if int(tournament[0]) in range(first_item, first_item + items_to_process):
-
                     print("\nRunning tournament %s (%s)...\n" % (tournament[0], tournament[2]))
-
                     self.get_rating_list(initial_rating_filepath)
-
                     print("Reading from %s" % initial_rating_filepath)
                     print("Writing to %s" % final_rating_filepath)
-
                     trn_type = tournament[4]
-
                     if trn_type == 'SS':
                         tournament = SwissSingleTournament(self, tournament)
                     elif trn_type == 'RR':
@@ -59,17 +50,14 @@ class FexerjRatingCycle:
                         tournament = SwissTeamTournament(self, tournament)
                     else:
                         raise ValueError('Wrong tournament type: %s' % trn_type)
-
                     tournament.complete_players_info()
                     tournament.calculate_players_ratings()
                     tournament.write_new_ratings_list(final_rating_filepath)
-
                 initial_rating_filepath = final_rating_filepath
 
         self.write_manual_entry_dict()
 
     def get_rating_list(self, initial_rating_filepath):
-
         with open(initial_rating_filepath) as rating_list:
             reader = csv.reader(rating_list, delimiter=_CSV_DELIMITER)
             next(reader, None)  # Skip the headers
@@ -100,7 +88,6 @@ class FexerjRatingCycle:
 
 
 class FexerjPlayer:
-
     def __init__(self, id_fexerj, id_cbx, title, name, lastrating, club, birthday, sex, federation, totgames,
                  sumopprating, ptsagainstopp):
         self.id_fexerj = id_fexerj
@@ -118,25 +105,20 @@ class FexerjPlayer:
 
 
 class TournamentPlayer:
-
     def __init__(self, tournament, url):
-
         self.snr = 0
         self.name = ""
         self.id = 0
         self.opponents = []
         self.tournament = tournament
         self.load_player_page(url)
-
         self.is_unrated = None
         self.is_temp = None
-
         self.last_k = None
         self.last_rating = None
         self.last_total_games = None
         self.last_sum_oppon_ratings = None
         self.last_pts_against_oppon = None
-
         # self.this_rating = None
         self.this_pts_against_oppon = None
         self.this_sum_oppon_ratings = None
@@ -145,24 +127,20 @@ class TournamentPlayer:
         self.this_score = None
         self.this_expected_points = None
         self.this_points_above_expected = None
-
         self.new_rating = None
         self.new_total_games = None
         self.new_sum_oppon_ratings = None
         self.new_pts_against_oppon = None
 
     def load_player_page(self, url):
-
         soup = BeautifulSoup(requests.get(url).content, 'lxml')
         tables = soup.find_all("table", class_="CRs1")
-
-        if len(tables) == 0:
+        if not len(tables):
             del self
             return
-
         table = tables[0]
         rows = table.find_all("tr")
-        for i in range(0, len(rows)):
+        for i in range(len(rows)):
             cells = rows[i].find_all("td")
             cell_data = [cell.get_text().strip() for cell in cells]
             if cell_data[0] == "Name":
@@ -181,7 +159,6 @@ class TournamentPlayer:
                         self.id = int(input('\tPlease enter this player\'s ID: '))
                         print()
                         self.tournament.rating_cycle.manual_entries[manual_entry_key] = self.id
-
         # Get Opponents and Results
         table = tables[1]
         header = table.select("tr")[0].find_all("td")
@@ -193,7 +170,6 @@ class TournamentPlayer:
                 name_cell_num = cell_num
             elif cell == 'Res.':
                 result_cell_num = cell_num
-
         rows = table.find_all("tr", recursive=False)
         for i in range(1, len(rows)):
             cells = rows[i].find_all("td", recursive=False)
@@ -219,7 +195,6 @@ class TournamentPlayer:
         self.new_pts_against_oppon = self.last_pts_against_oppon
 
     def calculate_new_rating(self, is_fexerj_tournament):
-
         invalid_opponents = []
         for k, tp_oppon in self.opponents.items():
             if tp_oppon[0].is_unrated:
@@ -227,13 +202,10 @@ class TournamentPlayer:
                     invalid_opponents.append(k)
         for i in invalid_opponents:
             del self.opponents[i]
-
         self.this_games = len(self.opponents)
-
         if self.this_games == 0 or (self.is_unrated and self.this_pts_against_oppon == 0):
             self.keep_current_rating()
             return
-
         self.this_sum_oppon_ratings = 0
         self.this_pts_against_oppon = 0
         for snr_opp, oppon in self.opponents.items():
@@ -244,19 +216,15 @@ class TournamentPlayer:
             else:
                 self.this_sum_oppon_ratings += oppon[0].last_rating
             self.this_pts_against_oppon += oppon[1]
-
         if self.is_unrated and self.this_pts_against_oppon == 0:
             self.keep_current_rating()
             return
-
         self.last_k = self.get_current_k()
         self.this_avg_oppon_rating = self.this_sum_oppon_ratings / self.this_games
         rating_diff = self.this_avg_oppon_rating - self.last_rating
         self.this_expected_points = self.this_games / (1.0 + 10.0 ** (rating_diff / 400.0))
         self.this_points_above_expected = (self.this_pts_against_oppon - self.this_expected_points)
-
         self.new_total_games = self.last_total_games + self.this_games
-
         calc_rule = self.get_calculation_rule(is_fexerj_tournament)
         if calc_rule == "TEMPORARY":
             if (self.this_games + self.last_total_games) == 0:
@@ -284,8 +252,7 @@ class TournamentPlayer:
         print(str(self.id) + " | " + self.name + " | Old: " + str(self.last_rating) + " | New: " + str(self.new_rating))
 
         # For debug
-        # print(str(self.id) + " | " + self.name + " | " + str(self.this_sum_oppon_ratings) + " | " + str(
-        #     self.this_expected_points))
+        # print(str(self.id) + " | " + self.name + " | " + str(self.this_sum_oppon_ratings) + " | " + str(self.this_expected_points))
 
     def get_calculation_rule(self, is_fexerj_tournament):
         if self.is_temp or self.is_unrated:
@@ -341,7 +308,6 @@ class TournamentPlayer:
 
 
 class Tournament:
-
     def __init__(self, rating_cycle, tournament):
         self.ord = int(tournament[0])
         self.id = int(tournament[1])
@@ -366,12 +332,10 @@ class Tournament:
                 fp = self.rating_cycle.rating_list[self.rating_cycle.cbx_to_fexerj[tp.id]]
             else:
                 fp = self.rating_cycle.rating_list[tp.id]
-
             tp.last_rating = int(fp.lastRating)
             tp.last_total_games = int(fp.totGames)
             tp.last_sum_oppon_ratings = int(fp.sumOppRating)
             tp.last_pts_against_oppon = float(fp.ptsAgainstOpp)
-
             if int(fp.totGames) == 0:
                 self.unrated_keys.append(snr)
                 tp.is_unrated = True
@@ -408,7 +372,6 @@ class Tournament:
                 fp = self.rating_cycle.rating_list[self.rating_cycle.cbx_to_fexerj[player.id]]
             else:
                 fp = self.rating_cycle.rating_list[player.id]
-
             fp.lastRating = player.new_rating
             fp.totGames = player.new_total_games
             if player.new_total_games < _MAX_NUM_GAMES_TEMP_RATING:
@@ -437,16 +400,17 @@ class Tournament:
 
 
 class SwissSingleTournament(Tournament):
-
     def load_player_list(self):
         # Access Chess Results (Starting Rank
         url = _URLDOMAIN + '/tnr%d.aspx?lan=1&art=0' % self.id
         formdata = {"__VIEWSTATE": "",
                     "__VIEWSTATEGENERATOR": "",
                     "cb_alleDetails": "Show+tournament+details"}
+
         with requests.Session() as s:
             s.headers = {"User-Agent": "Mozilla/5.0"}
             res = s.post(url, data=formdata)
+
         soup = BeautifulSoup(res.content, 'html.parser')
         table = soup.find("table", attrs={"class": "CRs1"})
         header = table.select("tr")[0].find_all("td")
@@ -459,27 +423,26 @@ class SwissSingleTournament(Tournament):
         for x in range(1, len(table.select("tr"))):
             td_row = table.select("tr")[x].find_all("td")
             href = td_row[name_cell_num].find("a").get("href")
-
             url = _URLDOMAIN + '/' + href
             parsed = urlparse(url)
             snr = int(parse_qs(parsed.query).get('snr')[0])
-
             self.players[snr] = TournamentPlayer(self, url)
             if self.players[snr].snr == 0:
                 del self.players[snr]
 
 
 class RoundRobinTournament(Tournament):
-
     def load_player_list(self):
         # Access Chess Results (Starting Rank
         url = _URLDOMAIN + '/tnr%d.aspx?lan=1&art=0' % self.id
         formdata = {"__VIEWSTATE": "",
                     "__VIEWSTATEGENERATOR": "",
                     "cb_alleDetails": "Show+tournament+details"}
+
         with requests.Session() as s:
             s.headers = {"User-Agent": "Mozilla/5.0"}
             res = s.post(url, data=formdata)
+
         soup = BeautifulSoup(res.content, 'html.parser')
         table = soup.find("table", attrs={"class": "CRs1"})
         header = table.select("tr")[0].find_all("td")
@@ -506,16 +469,17 @@ class RoundRobinTournament(Tournament):
 
 
 class SwissTeamTournament(Tournament):
-
     def load_player_list(self):
         # Access Chess Results (Starting Rank
         url = _URLDOMAIN + '/tnr%d.aspx?lan=1&art=16' % self.id
         formdata = {"__VIEWSTATE": "",
                     "__VIEWSTATEGENERATOR": "",
                     "cb_alleDetails": "Show+tournament+details"}
+
         with requests.Session() as s:
             s.headers = {"User-Agent": "Mozilla/5.0"}
             res = s.post(url, data=formdata)
+
         soup = BeautifulSoup(res.content, 'html.parser')
         table = soup.find("table", attrs={"class": "CRs1"})
         header = table.select("tr")[0].find_all("td")
@@ -534,11 +498,9 @@ class SwissTeamTournament(Tournament):
             #     print()
             #     print('\tPlayer with unknown ID: %s' % td_data[name_cell_num])
             #     curr_player_id = int(input('\tPlease enter this player\'s ID: '))
-
             url = _URLDOMAIN + '/' + href
             parsed = urlparse(url)
             snr = int(parse_qs(parsed.query).get('snr')[0])
-
             self.players[snr] = TournamentPlayer(self, url)
             if self.players[snr].snr == 0:
                 del self.players[snr]

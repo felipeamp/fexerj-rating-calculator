@@ -26,18 +26,18 @@ The user should run the following command:
 The program will create one intermediate players' list file for each tournament in the following format:
 `RatingList_after_<number of the tournament>.csv`
 
-The program will also create a JSON file with all the players which ID was entered manually by the user. This is to avoid having to enter them again in a rerun. This file needs to be deleted by the user if the tournaments' file change.
+The program will also create a JSON file with all the players for which the ID was entered manually by the user. This is to avoid having to enter them again in a rerun. This file needs to be deleted by the user if the tournaments' file change.
 
 
 ## Command examples
 
 To run the first 25 tournaments of the file:
 
-```python3 fexerj-rating-calculator.py tournaments.csv 1 25 players.csv ```
+```python fexerj-rating-calculator.py tournaments.csv 1 25 players.csv```
 
 To run only the 11th tournaments of the file:
 
-```python3 fexerj-rating-calculator.py tournaments.csv 11 1 players.csv ```
+```python fexerj-rating-calculator.py tournaments.csv 11 1 players.csv```
 
 
 ## TODO
