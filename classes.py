@@ -161,7 +161,7 @@ class TournamentPlayer:
                         self.tournament.rating_cycle.manual_entries[manual_entry_key] = self.id
         # Get Opponents and Results
         table = tables[1]
-        header = table.select("tr")[0].find_all("td")
+        header = table.select("tr")[0].find_all("th")
         header_data = [h.get_text().strip() for h in header]
         for cell_num, cell in enumerate(header_data):
             if cell == 'SNo':
@@ -245,14 +245,14 @@ class TournamentPlayer:
             self.new_rating = round(self.last_rating + (performance_rating - self.last_rating) / 2)
         else:
             rating_gain = (1 + int(calc_rule == "DOUBLE_K")) * self.last_k * self.this_points_above_expected
-            rating_gain_rounded = round(rating_gain)  # Rounding to closest int
+            rating_gain_rounded = round(rating_gain)  # Rounding to the closest int
             # self.new_rating = max(self.this_rating + rating_gain_rounded, 1)
             self.new_rating = max(self.last_rating + rating_gain_rounded, 1)
 
-        print(str(self.id) + " | " + self.name + " | Old: " + str(self.last_rating) + " | New: " + str(self.new_rating))
+        # print(str(self.id) + " | " + self.name + " | Old: " + str(self.last_rating) + " | New: " + str(self.new_rating))
 
         # For debug
-        # print(str(self.id) + " | " + self.name + " | " + str(self.this_sum_oppon_ratings) + " | " + str(self.this_expected_points))
+        # print(str(self.id) + " | " + self.name + " | " + str(self.this_sum_oppon_ratings) + " | " + str(self.this_expected_points) + " | " + str(self.this_games))
 
     def get_calculation_rule(self, is_fexerj_tournament):
         if self.is_temp or self.is_unrated:
@@ -272,8 +272,9 @@ class TournamentPlayer:
             return self.this_points_above_expected >= 2.02
         elif self.this_games == 7:
             return self.this_points_above_expected >= 2.16
-        raise NotImplementedError(
-            'Unknown condition for Rating performance rule with more than 7 games.')
+        else:
+            print("WARNING: Unknown condition for RP rule with more than 7 games. Assuming FALSE for Rating Performance.")
+            return False
 
     def check_double_k_rule(self):
         if self.this_games < 4:
@@ -286,8 +287,9 @@ class TournamentPlayer:
             return self.this_points_above_expected >= 1.56
         elif self.this_games == 7:
             return self.this_points_above_expected >= 1.69
-        raise NotImplementedError(
-            'Unknown condition for double K rule with more than 7 games.')
+        else:
+            print("WARNING: Unknown condition for DK rule with more than 7 games. Assuming FALSE for Double K.")
+            return False
 
     def get_current_k(self):
         # Assumes rating is not temporary
@@ -402,7 +404,7 @@ class Tournament:
 class SwissSingleTournament(Tournament):
     def load_player_list(self):
         # Access Chess Results (Starting Rank
-        url = _URLDOMAIN + '/tnr%d.aspx?lan=1&art=0' % self.id
+        url = _URLDOMAIN + '/tnr%d.aspx?lan=1&art=0&turdet=YES' % self.id
         formdata = {"__VIEWSTATE": "",
                     "__VIEWSTATEGENERATOR": "",
                     "cb_alleDetails": "Show+tournament+details"}
@@ -413,7 +415,7 @@ class SwissSingleTournament(Tournament):
 
         soup = BeautifulSoup(res.content, 'html.parser')
         table = soup.find("table", attrs={"class": "CRs1"})
-        header = table.select("tr")[0].find_all("td")
+        header = table.select("tr")[0].find_all("th")
         header_data = [h.get_text().strip() for h in header]
 
         for cell_num, cell in enumerate(header_data):
@@ -445,7 +447,7 @@ class RoundRobinTournament(Tournament):
 
         soup = BeautifulSoup(res.content, 'html.parser')
         table = soup.find("table", attrs={"class": "CRs1"})
-        header = table.select("tr")[0].find_all("td")
+        header = table.select("tr")[0].find_all("th")
         header_data = [h.get_text().strip() for h in header]
 
         for cell_num, cell in enumerate(header_data):
@@ -471,7 +473,7 @@ class RoundRobinTournament(Tournament):
 class SwissTeamTournament(Tournament):
     def load_player_list(self):
         # Access Chess Results (Starting Rank
-        url = _URLDOMAIN + '/tnr%d.aspx?lan=1&art=16' % self.id
+        url = _URLDOMAIN + '/tnr%d.aspx?lan=1&art=16&zeilen=99999' % self.id
         formdata = {"__VIEWSTATE": "",
                     "__VIEWSTATEGENERATOR": "",
                     "cb_alleDetails": "Show+tournament+details"}
@@ -482,7 +484,7 @@ class SwissTeamTournament(Tournament):
 
         soup = BeautifulSoup(res.content, 'html.parser')
         table = soup.find("table", attrs={"class": "CRs1"})
-        header = table.select("tr")[0].find_all("td")
+        header = table.select("tr")[0].find_all("th")
         header_data = [h.get_text().strip() for h in header]
 
         for cell_num, cell in enumerate(header_data):
