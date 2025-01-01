@@ -11,6 +11,7 @@ _CSV_DELIMITER = ';'
 _URLDOMAIN = "https://chess-results.com"
 _RATING_LIST_HEADER = 'Id_No;Id_CBX;Title;Name;Rtg_Nat;ClubName;Birthday;Sex;Fed;TotalNumGames;SumOpponRating' \
                       ';TotalPoints'
+_AUDIT_FILE_HEADER = 'Id_Fexerj;Name;No;Ro;Ind;K;PG;N;Erm;Rm;Dif;We;Nwe;Dw,kDw;Rn;Nind;P;Calc_Rule'
 _MAX_NUM_GAMES_TEMP_RATING = 15
 _K_STARTING_NUM_GAMES = [(30, 0),  # grampo
                          (25, _MAX_NUM_GAMES_TEMP_RATING),  # 15
@@ -36,6 +37,7 @@ class FexerjRatingCycle:
             self.tournaments = list(reader)[1:]
             for tournament in self.tournaments:
                 final_rating_filepath = "RatingList_after_%s.csv" % (tournament[0])
+                tournament_audit_filepath = "Audit_of_Tournament_%s.csv" % (tournament[0])
                 if int(tournament[0]) in range(first_item, first_item + items_to_process):
                     print("\nRunning tournament %s (%s)...\n" % (tournament[0], tournament[2]))
                     self.get_rating_list(initial_rating_filepath)
@@ -53,6 +55,7 @@ class FexerjRatingCycle:
                     tournament.complete_players_info()
                     tournament.calculate_players_ratings()
                     tournament.write_new_ratings_list(final_rating_filepath)
+                    tournament.write_tournament_audit(tournament_audit_filepath)
                 initial_rating_filepath = final_rating_filepath
 
         self.write_manual_entry_dict()
@@ -131,6 +134,7 @@ class TournamentPlayer:
         self.new_total_games = None
         self.new_sum_oppon_ratings = None
         self.new_pts_against_oppon = None
+        self.calc_rule = None
 
     def load_player_page(self, url):
         soup = BeautifulSoup(requests.get(url).content, 'lxml')
@@ -225,8 +229,8 @@ class TournamentPlayer:
         self.this_expected_points = self.this_games / (1.0 + 10.0 ** (rating_diff / 400.0))
         self.this_points_above_expected = (self.this_pts_against_oppon - self.this_expected_points)
         self.new_total_games = self.last_total_games + self.this_games
-        calc_rule = self.get_calculation_rule(is_fexerj_tournament)
-        if calc_rule == "TEMPORARY":
+        self.calc_rule = self.get_calculation_rule(is_fexerj_tournament)
+        if self.calc_rule == "TEMPORARY":
             if (self.this_games + self.last_total_games) == 0:
                 # If in a temporary player's "first tournament he gets zero points", the
                 # tournament result is discarded for rating purposes.
@@ -237,14 +241,14 @@ class TournamentPlayer:
                 self.new_pts_against_oppon = self.last_pts_against_oppon + self.this_pts_against_oppon
                 self.new_rating = round(self.get_performance_rating(self.new_avg_oppon_rating, self.new_total_games,
                                                                     self.new_pts_against_oppon))
-        elif calc_rule == "RATING_PERFORMANCE":
+        elif self.calc_rule == "RATING_PERFORMANCE":
             self.this_avg_oppon_rating = self.this_sum_oppon_ratings / self.this_games
             performance_rating = self.get_performance_rating(self.this_avg_oppon_rating, self.this_games,
                                                              self.this_pts_against_oppon)
             # self.new_rating = round(self.this_rating + (performance_rating - self.this_rating) / 2)
             self.new_rating = round(self.last_rating + (performance_rating - self.last_rating) / 2)
         else:
-            rating_gain = (1 + int(calc_rule == "DOUBLE_K")) * self.last_k * self.this_points_above_expected
+            rating_gain = (1 + int(self.calc_rule == "DOUBLE_K")) * self.last_k * self.this_points_above_expected
             rating_gain_rounded = round(rating_gain)  # Rounding to the closest int
             # self.new_rating = max(self.this_rating + rating_gain_rounded, 1)
             self.new_rating = max(self.last_rating + rating_gain_rounded, 1)
@@ -400,6 +404,31 @@ class Tournament:
                              str(player.ptsAgainstOpp)]
                 print(_CSV_DELIMITER.join(line_list), file=new_rating_list)
 
+    def write_tournament_audit(self, tournament_audit_filepath):
+
+        with open(tournament_audit_filepath, 'w') as new_audit_file:
+            print(_AUDIT_FILE_HEADER, file=new_audit_file)
+            for key, player in self.players.items():
+                line_list = [str(player.id),
+                             player.name,
+                             str(key),
+                             str(player.last_rating),
+                             str(player.last_total_games),
+                             str(player.last_k),
+                             str(player.this_pts_against_oppon),
+                             str(player.this_games),
+                             str(player.this_sum_oppon_ratings),
+                             str(float(player.this_avg_oppon_rating or 0)),
+                             str(player.last_rating - float(player.this_avg_oppon_rating or 0)),
+                             str(float(player.this_expected_points or 0)),
+                             str(float(player.this_expected_points or 0) * player.this_games or 0),
+                             str(float(player.this_points_above_expected or 0)),
+                             str(int(player.last_k or 0) * float(player.this_points_above_expected or 0)),
+                             str(player.new_rating),
+                             str(player.new_total_games),
+                             str(player.this_pts_against_oppon / player.this_games),
+                             str(player.calc_rule)]
+                print(_CSV_DELIMITER.join(line_list), file=new_audit_file)
 
 class SwissSingleTournament(Tournament):
     def load_player_list(self):
