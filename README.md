@@ -26,6 +26,9 @@ The user should run the following command:
 The program will create one intermediate players' list file for each tournament in the following format:
 `RatingList_after_<number of the tournament>.csv`
 
+Also, for each tournament, the program will create an audit file with the most important variables for the rating calculation in the following name format: `Audit_of_Tournament_<number of the tournament>.csv`
+
+
 The program will also create a JSON file with all the players for which the ID was entered manually by the user. This is to avoid having to enter them again in a rerun. This file needs to be deleted by the user if the tournaments' file change.
 
 
