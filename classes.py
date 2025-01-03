@@ -24,23 +24,24 @@ class FexerjRatingCycle:
         self.tournaments_file = tournaments_file
         self.first_item = first_item
         self.items_to_process = items_to_process
+        self.initial_rating_filepath = initial_rating_filepath
+        self.final_rating_filepath = ""
         self.rating_list = {}
         self.tournaments = {}
         self.cbx_to_fexerj = {}
         self.manual_entries = {}
 
-        self.load_manual_entry_dict()
-
-        with open(tournaments_file, 'r') as f:
+    def run_cycle(self):
+        with open(self.tournaments_file, 'r') as f:
             reader = csv.reader(f, delimiter=_CSV_DELIMITER)
             self.tournaments = list(reader)[1:]
             for tournament in self.tournaments:
-                final_rating_filepath = "RatingList_after_%s.csv" % (tournament[0])
-                if int(tournament[0]) in range(first_item, first_item + items_to_process):
+                self.final_rating_filepath = "RatingList_after_%s.csv" % (tournament[0])
+                if int(tournament[0]) in range(self.first_item, self.first_item + self.items_to_process):
                     print("\nRunning tournament %s (%s)...\n" % (tournament[0], tournament[2]))
-                    self.get_rating_list(initial_rating_filepath)
-                    print("Reading from %s" % initial_rating_filepath)
-                    print("Writing to %s" % final_rating_filepath)
+                    self.get_rating_list(self.initial_rating_filepath)
+                    print("Reading from %s" % self.initial_rating_filepath)
+                    print("Writing to %s" % self.final_rating_filepath)
                     trn_type = tournament[4]
                     if trn_type == 'SS':
                         tournament = SwissSingleTournament(self, tournament)
@@ -50,30 +51,31 @@ class FexerjRatingCycle:
                         tournament = SwissTeamTournament(self, tournament)
                     else:
                         raise ValueError('Wrong tournament type: %s' % trn_type)
+                    tournament.load_player_list()
                     tournament.complete_players_info()
                     tournament.calculate_players_ratings()
-                    tournament.write_new_ratings_list(final_rating_filepath)
-                initial_rating_filepath = final_rating_filepath
-
-        self.write_manual_entry_dict()
+                    tournament.write_new_ratings_list(self.final_rating_filepath)
+                self.initial_rating_filepath = self.final_rating_filepath
 
     def get_rating_list(self, initial_rating_filepath):
         with open(initial_rating_filepath) as rating_list:
             reader = csv.reader(rating_list, delimiter=_CSV_DELIMITER)
             next(reader, None)  # Skip the headers
             for row in reader:
-                self.rating_list.update({int(row[0]): FexerjPlayer(int(row[0]),  # ID FEXERJ
-                                                                   row[1],  # ID CBX
-                                                                   row[2],  # TITLE
-                                                                   row[3],  # NAME
-                                                                   int(row[4]),  # RATING
-                                                                   row[5],  # CLUB
-                                                                   row[6],  # BIRTHDAY
-                                                                   row[7],  # SEX
-                                                                   row[8],  # FEDERATION
-                                                                   int(row[9]),  # TOTAL NUM OF GAMES
-                                                                   row[10],  # SUM OF OPPONENT RATINGS
-                                                                   row[11])})  # POINTS AGAINST OPPONENTS
+                for row in reader:
+                    player = FexerjPlayer(int(row[0]),  # ID FEXERJ
+                                          row[1],  # ID CBX
+                                          row[2],  # TITLE
+                                          row[3],  # NAME
+                                          int(row[4]),  # RATING
+                                          row[5],  # CLUB
+                                          row[6],  # BIRTHDAY
+                                          row[7],  # SEX
+                                          row[8],  # FEDERATION
+                                          int(row[9]),  # TOTAL NUM OF GAMES
+                                          row[10],  # SUM OF OPPONENT RATINGS
+                                          row[11])  # POINTS AGAINST OPPONENTS
+                    self.rating_list.update({int(row[0]): player})
                 if len(row[1]) > 0:
                     self.cbx_to_fexerj[int(row[1])] = int(row[0])
 
@@ -105,13 +107,14 @@ class FexerjPlayer:
 
 
 class TournamentPlayer:
-    def __init__(self, tournament, url):
+    def __init__(self, tournament, player_url):
+        # Example of player_url: https://chess-results.com/tnr1043710.aspx?lan=1&art=9&fed=BRA&turdet=YES&flag=30&snr=1
         self.snr = 0
         self.name = ""
         self.id = 0
         self.opponents = []
         self.tournament = tournament
-        self.load_player_page(url)
+        self.load_player_page(player_url)
         self.is_unrated = None
         self.is_temp = None
         self.last_k = None
@@ -209,7 +212,10 @@ class TournamentPlayer:
         self.this_sum_oppon_ratings = 0
         self.this_pts_against_oppon = 0
         for snr_opp, oppon in self.opponents.items():
-            if oppon[0].is_unrated:  # unrated x unrated will never happen
+            # If the player is unrated, his unrated opponent will be moved to the invalid_opponents list in the first
+            # part of this method. When the program reaches this FOR, self.opponents will never have an unrated player
+            # if the current player is also unrated. Meaning that unrated x unrated will never happen.
+            if oppon[0].is_unrated:
                 self.this_sum_oppon_ratings += oppon[0].new_rating
             elif oppon[0].is_temp and not (self.is_unrated or self.is_temp):  # self established x oppon temporary
                 self.this_sum_oppon_ratings += oppon[0].new_rating
@@ -323,10 +329,6 @@ class Tournament:
         self.temp_keys = []
         self.established_keys = []
         self.rating_cycle = rating_cycle
-        self.load_player_list()
-
-    def load_player_list(self):
-        pass
 
     def complete_players_info(self):
         for snr, tp in self.players.items():

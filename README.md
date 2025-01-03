@@ -35,7 +35,7 @@ To run the first 25 tournaments of the file:
 
 ```python fexerj-rating-calculator.py tournaments.csv 1 25 players.csv```
 
-To run only the 11th tournaments of the file:
+To run only the 11th tournaments of the file (for example, if you find some issue with a given tournament in Chess Results page, fix it and want to rerun from that point of the cycle):
 
 ```python fexerj-rating-calculator.py tournaments.csv 11 1 players.csv```
 
