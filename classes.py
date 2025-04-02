@@ -57,6 +57,7 @@ class FexerjRatingCycle:
                     tournament.complete_players_info()
                     tournament.calculate_players_ratings()
                     tournament.write_new_ratings_list(self.final_rating_filepath)
+                    tournament.write_tournament_audit(tournament_audit_filepath)
                 self.initial_rating_filepath = self.final_rating_filepath
 
     def get_rating_list(self, initial_rating_filepath):
@@ -64,20 +65,19 @@ class FexerjRatingCycle:
             reader = csv.reader(rating_list, delimiter=_CSV_DELIMITER)
             next(reader, None)  # Skip the headers
             for row in reader:
-                for row in reader:
-                    player = FexerjPlayer(int(row[0]),  # ID FEXERJ
-                                          row[1],  # ID CBX
-                                          row[2],  # TITLE
-                                          row[3],  # NAME
-                                          int(row[4]),  # RATING
-                                          row[5],  # CLUB
-                                          row[6],  # BIRTHDAY
-                                          row[7],  # SEX
-                                          row[8],  # FEDERATION
-                                          int(row[9]),  # TOTAL NUM OF GAMES
-                                          row[10],  # SUM OF OPPONENT RATINGS
-                                          row[11])  # POINTS AGAINST OPPONENTS
-                    self.rating_list.update({int(row[0]): player})
+                player = FexerjPlayer(int(row[0]),  # ID FEXERJ
+                                      row[1],  # ID CBX
+                                      row[2],  # TITLE
+                                      row[3],  # NAME
+                                      int(row[4]),  # RATING
+                                      row[5],  # CLUB
+                                      row[6],  # BIRTHDAY
+                                      row[7],  # SEX
+                                      row[8],  # FEDERATION
+                                      int(row[9]),  # TOTAL NUM OF GAMES
+                                      row[10],  # SUM OF OPPONENT RATINGS
+                                      row[11])  # POINTS AGAINST OPPONENTS
+                self.rating_list.update({int(row[0]): player})
                 if len(row[1]) > 0:
                     self.cbx_to_fexerj[int(row[1])] = int(row[0])
 
