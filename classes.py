@@ -421,13 +421,13 @@ class Tournament:
                              str(player.this_sum_oppon_ratings),
                              str(float(player.this_avg_oppon_rating or 0)),
                              str(player.last_rating - float(player.this_avg_oppon_rating or 0)),
+                             str(None if player.this_games == 0 else (float(player.this_expected_points or 0) / player.this_games)),
                              str(float(player.this_expected_points or 0)),
-                             str(float(player.this_expected_points or 0) * player.this_games or 0),
                              str(float(player.this_points_above_expected or 0)),
                              str(int(player.last_k or 0) * float(player.this_points_above_expected or 0)),
                              str(player.new_rating),
                              str(player.new_total_games),
-                             str(player.this_pts_against_oppon / player.this_games),
+                             str(None if player.this_games == 0 else float(player.this_pts_against_oppon or 0) / player.this_games), # To avoid division by zero
                              str(player.calc_rule)]
                 print(_CSV_DELIMITER.join(line_list), file=new_audit_file)
 
