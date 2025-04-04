@@ -11,6 +11,26 @@ _CSV_DELIMITER = ';'
 _URLDOMAIN = "https://chess-results.com"
 _RATING_LIST_HEADER = 'Id_No;Id_CBX;Title;Name;Rtg_Nat;ClubName;Birthday;Sex;Fed;TotalNumGames;SumOpponRating' \
                       ';TotalPoints'
+# -- Audit File Columns --
+# Id_Fexerj = ID of the player within FEXERJ
+# Name = Name of the player
+# No = Number of the player within Chess Result tournament
+# Ro = Rating before tournament
+# Ind = Total games before tournament
+# K = K before tournament
+# PG = Points against opponents on valid games in the current tournament
+# N = Valid games in the current tournament
+# Erm = SUM of opponents' ratings in the current tournament
+# Rm = Average rating of opponents in the current tournament
+# Dif = Difference between Ro and Rm
+# We = Nwe divided by N (zero if N is zero)
+# Nwe = Expected points in the current tournament
+# Dw = Points above expected in the current tournament
+# kDw = K * Dw
+# Rn = New rating
+# Nind = New total games
+# P = PG / N
+# Calc_Rule = Calculation Rule used (NORMAL, TEMPORARY, RATING_PERFORMANCE or DOUBLE_K)
 _AUDIT_FILE_HEADER = 'Id_Fexerj;Name;No;Ro;Ind;K;PG;N;Erm;Rm;Dif;We;Nwe;Dw;kDw;Rn;Nind;P;Calc_Rule'
 _MAX_NUM_GAMES_TEMP_RATING = 15
 _K_STARTING_NUM_GAMES = [(30, 0),  # grampo
@@ -357,7 +377,6 @@ class Tournament:
             tp.opponents = {opp[0]: [self.players[opp[0]], opp[2]] for opp in tp.opponents}
 
     def calculate_players_ratings(self):
-
         # First, calculates unrated
         for k in self.unrated_keys:
             self.players[k].calculate_new_rating(self.is_fexerj)
@@ -373,7 +392,6 @@ class Tournament:
             self.players[k].calculate_new_rating(self.is_fexerj)
 
     def write_new_ratings_list(self, output_rating_filepath):
-
         for player in self.players.values():
             if self.is_irt:
                 fp = self.rating_cycle.rating_list[self.rating_cycle.cbx_to_fexerj[player.id]]
@@ -406,29 +424,28 @@ class Tournament:
                 print(_CSV_DELIMITER.join(line_list), file=new_rating_list)
 
     def write_tournament_audit(self, tournament_audit_filepath):
-
         with open(tournament_audit_filepath, 'w') as new_audit_file:
             print(_AUDIT_FILE_HEADER, file=new_audit_file)
-            for key, player in self.players.items():
-                line_list = [str(player.id),
-                             player.name,
-                             str(key),
-                             str(player.last_rating),
-                             str(player.last_total_games),
-                             str(player.last_k),
-                             str(player.this_pts_against_oppon),
-                             str(player.this_games),
-                             str(player.this_sum_oppon_ratings),
-                             str(float(player.this_avg_oppon_rating or 0)),
-                             str(player.last_rating - float(player.this_avg_oppon_rating or 0)),
-                             str(None if player.this_games == 0 else (float(player.this_expected_points or 0) / player.this_games)),
-                             str(float(player.this_expected_points or 0)),
-                             str(float(player.this_points_above_expected or 0)),
-                             str(int(player.last_k or 0) * float(player.this_points_above_expected or 0)),
-                             str(player.new_rating),
-                             str(player.new_total_games),
-                             str(None if player.this_games == 0 else float(player.this_pts_against_oppon or 0) / player.this_games), # To avoid division by zero
-                             str(player.calc_rule)]
+            for snr, tp in self.players.items():
+                line_list = [str(tp.id),
+                             tp.name,
+                             str(snr),
+                             str(tp.last_rating),
+                             str(tp.last_total_games),
+                             str(tp.last_k),
+                             str(tp.this_pts_against_oppon),
+                             str(tp.this_games),
+                             str(tp.this_sum_oppon_ratings),
+                             str(float(tp.this_avg_oppon_rating or 0)),
+                             str(tp.last_rating - float(tp.this_avg_oppon_rating or 0)),
+                             str(None if tp.this_games == 0 else (float(tp.this_expected_points or 0) / tp.this_games)),
+                             str(float(tp.this_expected_points or 0)),
+                             str(float(tp.this_points_above_expected or 0)),
+                             str(int(tp.last_k or 0) * float(tp.this_points_above_expected or 0)),
+                             str(tp.new_rating),
+                             str(tp.new_total_games),
+                             str(None if tp.this_games == 0 else float(tp.this_pts_against_oppon or 0) / tp.this_games), # To avoid division by zero
+                             str(tp.calc_rule)]
                 print(_CSV_DELIMITER.join(line_list), file=new_audit_file)
 
 class SwissSingleTournament(Tournament):
