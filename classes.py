@@ -424,6 +424,8 @@ class Tournament:
                 print(_CSV_DELIMITER.join(line_list), file=new_rating_list)
 
     def write_tournament_audit(self, tournament_audit_filepath):
+        #TODO Create pydoc to document corner cases on audit file creation
+        # https://github.com/felipeamp/fexerj-rating-calculator/issues/22
         with open(tournament_audit_filepath, 'w') as new_audit_file:
             print(_AUDIT_FILE_HEADER, file=new_audit_file)
             for snr, tp in self.players.items():
