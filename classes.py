@@ -112,20 +112,20 @@ class FexerjRatingCycle:
 
 
 class FexerjPlayer:
-    def __init__(self, id_fexerj, id_cbx, title, name, lastrating, club, birthday, sex, federation, totgames,
-                 sumopprating, ptsagainstopp):
+    def __init__(self, id_fexerj, id_cbx, title, name, last_rating, club, birthday, sex, federation, total_games,
+                 sum_opponents_ratings, points_against_opponents):
         self.id_fexerj = id_fexerj
         self.id_cbx = id_cbx
         self.title = title
         self.name = name
-        self.lastRating = lastrating
+        self.last_rating = last_rating
         self.club = club
         self.birthday = birthday
         self.sex = sex
         self.federation = federation
-        self.totGames = totgames
-        self.sumOppRating = sumopprating
-        self.ptsAgainstOpp = ptsagainstopp
+        self.total_games = total_games
+        self.sum_opponents_ratings = sum_opponents_ratings
+        self.points_against_opponents = points_against_opponents
 
 
 class TournamentPlayer:
@@ -144,7 +144,6 @@ class TournamentPlayer:
         self.last_total_games = None
         self.last_sum_oppon_ratings = None
         self.last_pts_against_oppon = None
-        # self.this_rating = None
         self.this_pts_against_oppon = None
         self.this_sum_oppon_ratings = None
         self.this_avg_oppon_rating = None
@@ -359,14 +358,14 @@ class Tournament:
                 fp = self.rating_cycle.rating_list[self.rating_cycle.cbx_to_fexerj[tp.id]]
             else:
                 fp = self.rating_cycle.rating_list[tp.id]
-            tp.last_rating = int(fp.lastRating)
-            tp.last_total_games = int(fp.totGames)
-            tp.last_sum_oppon_ratings = int(fp.sumOppRating)
-            tp.last_pts_against_oppon = float(fp.ptsAgainstOpp)
-            if int(fp.totGames) == 0:
+            tp.last_rating = int(fp.last_rating)
+            tp.last_total_games = int(fp.total_games)
+            tp.last_sum_oppon_ratings = int(fp.sum_opponents_ratings)
+            tp.last_pts_against_oppon = float(fp.points_against_opponents)
+            if int(fp.total_games) == 0:
                 self.unrated_keys.append(snr)
                 tp.is_unrated = True
-            elif int(fp.totGames) < _MAX_NUM_GAMES_TEMP_RATING:
+            elif int(fp.total_games) < _MAX_NUM_GAMES_TEMP_RATING:
                 self.temp_keys.append(snr)
                 tp.is_temp = True
             else:
@@ -397,14 +396,14 @@ class Tournament:
                 fp = self.rating_cycle.rating_list[self.rating_cycle.cbx_to_fexerj[player.id]]
             else:
                 fp = self.rating_cycle.rating_list[player.id]
-            fp.lastRating = player.new_rating
-            fp.totGames = player.new_total_games
+            fp.last_rating = player.new_rating
+            fp.total_games = player.new_total_games
             if player.new_total_games < _MAX_NUM_GAMES_TEMP_RATING:
-                fp.sumOppRating = player.new_sum_oppon_ratings
-                fp.ptsAgainstOpp = player.new_pts_against_oppon
+                fp.sum_opponents_ratings = player.new_sum_oppon_ratings
+                fp.points_against_opponents = player.new_pts_against_oppon
             else:
-                fp.sumOppRating = 0
-                fp.ptsAgainstOpp = 0
+                fp.sum_opponents_ratings = 0
+                fp.points_against_opponents = 0
 
         with open(output_rating_filepath, 'w') as new_rating_list:
             print(_RATING_LIST_HEADER, file=new_rating_list)
@@ -413,14 +412,14 @@ class Tournament:
                              str(player.id_cbx),
                              player.title,
                              player.name,
-                             str(player.lastRating),
+                             str(player.last_rating),
                              player.club,
                              player.birthday,
                              player.sex,
                              player.federation,
-                             str(player.totGames),
-                             str(player.sumOppRating),
-                             str(player.ptsAgainstOpp)]
+                             str(player.total_games),
+                             str(player.sum_opponents_ratings),
+                             str(player.points_against_opponents)]
                 print(_CSV_DELIMITER.join(line_list), file=new_rating_list)
 
     def write_tournament_audit(self, tournament_audit_filepath):
