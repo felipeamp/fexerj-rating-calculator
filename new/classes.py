@@ -94,7 +94,7 @@ class FexerjRatingCycle:
 
 class FexerjPlayer:
     def __init__(self, id_fexerj, id_cbx, title, name, lastrating, club, birthday, sex, federation, totgames,
-                 sumopprating, ptsagainstopp, had2400Rating: #, rapidRating, blitzRating):
+                 sumopprating, ptsagainstopp, had2400Rating): #, rapidRating, blitzRating):
         self.id_fexerj = id_fexerj
         self.id_cbx = id_cbx
         self.title = title
@@ -256,7 +256,7 @@ class TournamentPlayer:
             # TODO: figure out if we should round after each tournament or just always publish float ratings.
             rating_gain_rounded = round(rating_gain)  # Rounding to the closest int
             self.new_rating = self.last_rating + rating_gain_rounded
-            if self.new_rating < _MIN_RATING
+            if self.new_rating < _MIN_RATING:
                 self.clear_player_past()
 
     def clear_player_past(self):
@@ -309,7 +309,7 @@ class Tournament:
             tp.last_total_games = int(fp.totGames)
             tp.last_sum_oppon_ratings = int(fp.sumOppRating)
             tp.last_pts_against_oppon = float(fp.ptsAgainstOpp)
-            if int(fp.totGames) == 0 or int(fp.lastRating) = 0:
+            if int(fp.totGames) == 0 or int(fp.lastRating) == 0:
                 self.unrated_keys.append(snr)
                 tp.is_unrated = True
             else:
