@@ -8,7 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 
 _CSV_DELIMITER = ';'
-_URLDOMAIN = "https://chess-results.com"
+_URLDOMAIN = "https://s3.chess-results.com"
 _RATING_LIST_HEADER = 'Id_No;Id_CBX;Title;Name;Rtg_Nat;ClubName;Birthday;Sex;Fed;TotalNumGames;SumOpponRating' \
                       ';TotalPoints'
 # -- Audit File Columns --
@@ -472,8 +472,7 @@ class SwissSingleTournament(Tournament):
 
         for x in range(1, len(table.select("tr"))):
             td_row = table.select("tr")[x].find_all("td")
-            href = td_row[name_cell_num].find("a").get("href")
-            url = _URLDOMAIN + '/' + href
+            url = td_row[name_cell_num].find("a").get("href")
             parsed = urlparse(url)
             snr = int(parse_qs(parsed.query).get('snr')[0])
             self.players[snr] = TournamentPlayer(self, url)
@@ -507,9 +506,7 @@ class RoundRobinTournament(Tournament):
 
         for x in range(1, len(table.select("tr"))):
             td_row = table.select("tr")[x].find_all("td")
-            href = td_row[name_cell_num].find("a").get("href")
-
-            url = _URLDOMAIN + '/' + href
+            url = td_row[name_cell_num].find("a").get("href")
             parsed = urlparse(url)
             snr = int(parse_qs(parsed.query).get('snr')[0])
 
@@ -541,14 +538,7 @@ class SwissTeamTournament(Tournament):
 
         for x in range(1, len(table.select("tr"))):
             td_row = table.select("tr")[x].find_all("td")
-            href = td_row[name_cell_num].find("a").get("href")
-            # td_data = [td.get_text().strip() for td in td_row]
-            # curr_player_id = int(td_data[id_cell_num])
-            # if not curr_player_id:
-            #     print()
-            #     print('\tPlayer with unknown ID: %s' % td_data[name_cell_num])
-            #     curr_player_id = int(input('\tPlease enter this player\'s ID: '))
-            url = _URLDOMAIN + '/' + href
+            url = td_row[name_cell_num].find("a").get("href")
             parsed = urlparse(url)
             snr = int(parse_qs(parsed.query).get('snr')[0])
             self.players[snr] = TournamentPlayer(self, url)
