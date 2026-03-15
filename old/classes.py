@@ -37,8 +37,6 @@ _K_STARTING_NUM_GAMES = [(30, 0),  # grampo
                          (25, _MAX_NUM_GAMES_TEMP_RATING),  # 15
                          (15, 40),
                          (10, 80)]
-_CURRENT_TOURNAMENT_SNR = 0
-
 
 class FexerjRatingCycle:
     def __init__(self, tournaments_file, first_item, items_to_process, initial_rating_filepath):
