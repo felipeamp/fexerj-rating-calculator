@@ -42,9 +42,46 @@ To run only the 11th tournaments of the file (for example, if you find some issu
 ```python fexerj-rating-calculator.py tournaments.csv 11 1 players.csv```
 
 
+## IDE setup (PyCharm)
+
+To fix "unresolved reference" warnings in PyCharm, mark `old/` as a Sources Root:
+
+Right-click the `old/` folder in the Project panel → **Mark Directory as** → **Sources Root**.
+
+This is only needed for IDE highlighting — `pytest` resolves imports correctly for everyone via `pythonpath = old` in `pytest.ini`.
+
+## Running the tests
+
+Unit tests are located in `old/tests/` and use the [pytest](https://docs.pytest.org/) framework.
+
+To run all tests from the project root:
+
+```bash
+python3 -m pytest
+```
+
+To run with detailed output:
+
+```bash
+python3 -m pytest -v
+```
+
+To run a specific test file:
+
+```bash
+python3 -m pytest old/tests/test_tournament_player.py -v
+```
+
+To run a specific test class or method:
+
+```bash
+python3 -m pytest old/tests/test_tournament_player.py::TestGetCurrentK -v
+python3 -m pytest old/tests/test_tournament_player.py::TestGetCurrentK::test_entry_at_80_games -v
+```
+
+
 ## TODO
 
 * Error handling for common mistakes and errors
 * Split code in modules
-* Unit testing
 * Integration testing
