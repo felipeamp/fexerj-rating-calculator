@@ -2,7 +2,7 @@
 import json
 import pytest
 
-from classes import FexerjRatingCycle, FexerjPlayer
+from classes import FexerjRatingCycle, FexerjPlayer, TournamentType
 
 
 class TestFexerjRatingCycleInit:
@@ -95,6 +95,17 @@ class TestGetRatingList:
         cycle.get_rating_list(str(csv_file))
         assert cycle.rating_list == {}
         assert cycle.cbx_to_fexerj == {}
+
+
+class TestTournamentType:
+    def test_valid_types(self):
+        assert TournamentType('SS') == TournamentType.SS
+        assert TournamentType('RR') == TournamentType.RR
+        assert TournamentType('ST') == TournamentType.ST
+
+    def test_invalid_type_raises_value_error(self):
+        with pytest.raises(ValueError):
+            TournamentType('XX')
 
 
 class TestManualEntryDict:

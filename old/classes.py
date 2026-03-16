@@ -3,6 +3,7 @@ import math
 import os
 from urllib.parse import urlparse, parse_qs
 import csv
+from enum import Enum
 
 import requests
 from bs4 import BeautifulSoup
@@ -33,6 +34,11 @@ _RATING_LIST_HEADER = 'Id_No;Id_CBX;Title;Name;Rtg_Nat;ClubName;Birthday;Sex;Fed
 # Calc_Rule = Calculation Rule used (NORMAL, TEMPORARY, RATING_PERFORMANCE or DOUBLE_K)
 _AUDIT_FILE_HEADER = 'Id_Fexerj;Name;No;Ro;Ind;K;PG;N;Erm;Rm;Dif;We;Nwe;Dw;kDw;Rn;Nind;P;Calc_Rule'
 _MAX_NUM_GAMES_TEMP_RATING = 15
+
+class TournamentType(Enum):
+    SS = 'SS'  # Swiss Single
+    RR = 'RR'  # Round Robin
+    ST = 'ST'  # Swiss Team
 _K_STARTING_NUM_GAMES = [(30, 0),  # grampo
                          (25, _MAX_NUM_GAMES_TEMP_RATING),  # 15
                          (15, 40),
@@ -62,15 +68,13 @@ class FexerjRatingCycle:
                     self.get_rating_list(self.initial_rating_filepath)
                     print("Reading from %s" % self.initial_rating_filepath)
                     print("Writing to %s" % self.final_rating_filepath)
-                    trn_type = tournament[4]
-                    if trn_type == 'SS':
+                    trn_type = TournamentType(tournament[4])
+                    if trn_type == TournamentType.SS:
                         tournament = SwissSingleTournament(self, tournament)
-                    elif trn_type == 'RR':
+                    elif trn_type == TournamentType.RR:
                         tournament = RoundRobinTournament(self, tournament)
-                    elif trn_type == 'ST':
+                    elif trn_type == TournamentType.ST:
                         tournament = SwissTeamTournament(self, tournament)
-                    else:
-                        raise ValueError('Wrong tournament type: %s' % trn_type)
                     tournament.load_player_list()
                     tournament.complete_players_info()
                     tournament.calculate_players_ratings()
