@@ -101,8 +101,11 @@ class FexerjRatingCycle:
 
     def load_manual_entry_dict(self):
         if os.path.exists('manual_entry_list.json'):
+            print("manual_entry_list.json found. Loading...")
             with open('manual_entry_list.json', 'r') as manual_entry_dict_file:
                 self.manual_entries = json.load(manual_entry_dict_file)
+        else:
+            print("manual_entry_list.json not found. A new one will be created if needed.")
 
     def write_manual_entry_dict(self):
         with open('manual_entry_list.json', 'w') as manual_entry_dict_file:

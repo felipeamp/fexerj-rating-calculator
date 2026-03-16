@@ -98,14 +98,15 @@ class TestGetRatingList:
 
 
 class TestManualEntryDict:
-    def test_load_when_file_missing(self, tmp_path, monkeypatch):
+    def test_load_when_file_missing(self, tmp_path, monkeypatch, capsys):
         """load_manual_entry_dict should leave manual_entries empty when no file."""
         monkeypatch.chdir(tmp_path)
         cycle = FexerjRatingCycle("t.csv", 1, 1, "r.csv")
         cycle.load_manual_entry_dict()
         assert cycle.manual_entries == {}
+        assert "not found" in capsys.readouterr().out
 
-    def test_write_and_reload(self, tmp_path, monkeypatch):
+    def test_write_and_reload(self, tmp_path, monkeypatch, capsys):
         """Writing then loading manual entries should round-trip correctly."""
         monkeypatch.chdir(tmp_path)
         cycle = FexerjRatingCycle("t.csv", 1, 1, "r.csv")
@@ -115,3 +116,4 @@ class TestManualEntryDict:
         cycle2 = FexerjRatingCycle("t.csv", 1, 1, "r.csv")
         cycle2.load_manual_entry_dict()
         assert cycle2.manual_entries == {"1.5": 999, "2.3": 888}
+        assert "found" in capsys.readouterr().out
