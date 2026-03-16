@@ -159,7 +159,6 @@ class TournamentPlayer:
         soup = BeautifulSoup(requests.get(url).content, 'lxml')
         tables = soup.find_all("table", class_="CRs1")
         if not len(tables):
-            del self
             return
         table = tables[0]
         rows = table.find_all("tr")
