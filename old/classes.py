@@ -173,7 +173,7 @@ class TournamentPlayer:
             elif cell_data[0] == "Ident-Number":
                 self.id = int(cell_data[1])
                 if not self.id:
-                    manual_entry_key = str(self.tournament.ord) + '.' + str(self.snr)
+                    manual_entry_key = f"{self.tournament.ord}.{self.snr}"
                     if manual_entry_key in self.tournament.rating_cycle.manual_entries:
                         self.id = self.tournament.rating_cycle.manual_entries[manual_entry_key]
                     else:
@@ -450,7 +450,7 @@ class Tournament:
 class SwissSingleTournament(Tournament):
     def load_player_list(self):
         # Access Chess Results (Starting Rank
-        url = _URLDOMAIN + '/tnr%d.aspx?lan=1&art=0&turdet=YES' % self.id
+        url = f"{_URLDOMAIN}/tnr{self.id}.aspx?lan=1&art=0&turdet=YES"
         formdata = {"__VIEWSTATE": "",
                     "__VIEWSTATEGENERATOR": "",
                     "cb_alleDetails": "Show+tournament+details"}
@@ -481,7 +481,7 @@ class SwissSingleTournament(Tournament):
 class RoundRobinTournament(Tournament):
     def load_player_list(self):
         # Access Chess Results (Starting Rank
-        url = _URLDOMAIN + '/tnr%d.aspx?lan=1&art=0' % self.id
+        url = f"{_URLDOMAIN}/tnr{self.id}.aspx?lan=1&art=0"
         formdata = {"__VIEWSTATE": "",
                     "__VIEWSTATEGENERATOR": "",
                     "cb_alleDetails": "Show+tournament+details"}
@@ -516,7 +516,7 @@ class RoundRobinTournament(Tournament):
 class SwissTeamTournament(Tournament):
     def load_player_list(self):
         # Access Chess Results (Starting Rank
-        url = _URLDOMAIN + '/tnr%d.aspx?lan=1&art=16&zeilen=99999' % self.id
+        url = f"{_URLDOMAIN}/tnr{self.id}.aspx?lan=1&art=16&zeilen=99999"
         formdata = {"__VIEWSTATE": "",
                     "__VIEWSTATEGENERATOR": "",
                     "cb_alleDetails": "Show+tournament+details"}
