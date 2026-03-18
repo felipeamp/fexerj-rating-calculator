@@ -68,7 +68,10 @@ class FexerjRatingCycle:
                     self.get_rating_list(self.initial_rating_filepath)
                     print("Reading from %s" % self.initial_rating_filepath)
                     print("Writing to %s" % self.final_rating_filepath)
-                    trn_type = TournamentType(tournament[4])
+                    try:
+                        trn_type = TournamentType(tournament[4])
+                    except ValueError:
+                        raise ValueError(f"Tournament {tournament[0]}: '{tournament[4]}' is not a valid TournamentType")
                     if trn_type == TournamentType.SS:
                         tournament = SwissSingleTournament(self, tournament)
                     elif trn_type == TournamentType.RR:
