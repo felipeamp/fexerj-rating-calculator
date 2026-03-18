@@ -224,17 +224,24 @@ class TournamentPlayer:
         self.new_pts_against_oppon = self.last_pts_against_oppon
 
     def calculate_new_rating(self, is_fexerj_tournament):
+        # Step 1: Remove invalid opponents (unrated opponents with no usable new rating).
         invalid_opponents = []
         for k, tp_oppon in self.opponents.items():
             if tp_oppon[0].is_unrated:
-                if self.is_unrated or (tp_oppon[0].new_rating is None) or tp_oppon[0].new_rating == 0:
+                if (self.is_unrated
+                        or not tp_oppon[0].new_rating):
                     invalid_opponents.append(k)
         for i in invalid_opponents:
             del self.opponents[i]
+
+        # Step 2: Early exit if there are no valid games or if the player is unrated with zero points.
         self.this_games = len(self.opponents)
-        if self.this_games == 0 or (self.is_unrated and self.this_pts_against_oppon == 0):
+        if (self.this_games == 0
+                or (self.is_unrated and self.this_pts_against_oppon == 0)):
             self.keep_current_rating()
             return
+
+        # Step 3: Accumulate opponent ratings and points scored in this tournament.
         self.this_sum_oppon_ratings = 0
         self.this_pts_against_oppon = 0
         for snr_opp, oppon in self.opponents.items():
@@ -251,12 +258,16 @@ class TournamentPlayer:
         if self.is_unrated and self.this_pts_against_oppon == 0:
             self.keep_current_rating()
             return
+
+        # Step 4: Compute expected points and how many points the player scored above expectation.
         self.last_k = self.get_current_k()
         self.this_avg_oppon_rating = self.this_sum_oppon_ratings / self.this_games
         rating_diff = self.this_avg_oppon_rating - self.last_rating
         self.this_expected_points = self.this_games / (1.0 + 10.0 ** (rating_diff / 400.0))
         self.this_points_above_expected = (self.this_pts_against_oppon - self.this_expected_points)
         self.new_total_games = self.last_total_games + self.this_games
+
+        # Step 5: Determine the calculation rule and apply it to compute the new rating.
         self.calc_rule = self.get_calculation_rule(is_fexerj_tournament)
         if self.calc_rule == "TEMPORARY":
             if (self.this_games + self.last_total_games) == 0:
