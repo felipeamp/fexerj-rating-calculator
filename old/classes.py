@@ -39,6 +39,12 @@ class TournamentType(Enum):
     SS = 'SS'  # Swiss Single
     RR = 'RR'  # Round Robin
     ST = 'ST'  # Swiss Team
+
+class CalcRule(Enum):
+    TEMPORARY = 'TEMPORARY'
+    RATING_PERFORMANCE = 'RATING_PERFORMANCE'
+    DOUBLE_K = 'DOUBLE_K'
+    NORMAL = 'NORMAL'
 _K_STARTING_NUM_GAMES = [(30, 0),  # grampo
                          (25, _MAX_NUM_GAMES_TEMP_RATING),  # 15
                          (15, 40),
@@ -68,7 +74,10 @@ class FexerjRatingCycle:
                     self.get_rating_list(self.initial_rating_filepath)
                     print("Reading from %s" % self.initial_rating_filepath)
                     print("Writing to %s" % self.final_rating_filepath)
-                    trn_type = TournamentType(tournament[4])
+                    try:
+                        trn_type = TournamentType(tournament[4])
+                    except ValueError:
+                        raise ValueError(f"Tournament {tournament[0]}: '{tournament[4]}' is not a valid TournamentType")
                     if trn_type == TournamentType.SS:
                         tournament = SwissSingleTournament(self, tournament)
                     elif trn_type == TournamentType.RR:
@@ -172,11 +181,12 @@ class TournamentPlayer:
         for i in range(len(rows)):
             cells = rows[i].find_all("td")
             cell_data = [cell.get_text().strip() for cell in cells]
-            if cell_data[0] == "Name":
+            cell_header = cell_data[0]
+            if cell_header == "Name":
                 self.name = cell_data[1]
-            elif cell_data[0] == "Starting rank":
+            elif cell_header == "Starting rank":
                 self.snr = cell_data[1]
-            elif cell_data[0] == "Ident-Number":
+            elif cell_header == "Ident-Number":
                 self.id = int(cell_data[1])
                 if not self.id:
                     manual_entry_key = f"{self.tournament.ord}.{self.snr}"
@@ -209,11 +219,12 @@ class TournamentPlayer:
                 self.add_opponent(int(id_opponent), name_opponent, result_opponent)
 
     def add_opponent(self, sno, name, result):
-        if result[-1] != "K":
-            if result[-1] == "½":
+        result_char = result[-1]
+        if result_char != "K":
+            if result_char == "½":
                 res = '0.5'
             else:
-                res = result[-1]
+                res = result_char
             self.opponents.append([sno, name, float(res)])
 
     def keep_current_rating(self):
@@ -266,41 +277,51 @@ class TournamentPlayer:
 
         # Step 5: Determine the calculation rule and apply it to compute the new rating.
         self.calc_rule = self.get_calculation_rule(is_fexerj_tournament)
-        if self.calc_rule == "TEMPORARY":
-            if (self.this_games + self.last_total_games) == 0:
-                # Discard the result if a temporary player scored zero in their first tournament.
-                pass
-            else:
-                self.new_sum_oppon_ratings = self.last_sum_oppon_ratings + self.this_sum_oppon_ratings
-                self.new_avg_oppon_rating = self.new_sum_oppon_ratings / self.new_total_games
-                self.new_pts_against_oppon = self.last_pts_against_oppon + self.this_pts_against_oppon
-                self.new_rating = round(self.get_performance_rating(self.new_avg_oppon_rating, self.new_total_games,
-                                                                    self.new_pts_against_oppon))
-        elif self.calc_rule == "RATING_PERFORMANCE":
-            self.this_avg_oppon_rating = self.this_sum_oppon_ratings / self.this_games
-            performance_rating = self.get_performance_rating(self.this_avg_oppon_rating, self.this_games,
-                                                             self.this_pts_against_oppon)
-            # self.new_rating = round(self.this_rating + (performance_rating - self.this_rating) / 2)
-            self.new_rating = round(self.last_rating + (performance_rating - self.last_rating) / 2)
-        else:
-            rating_gain = (1 + int(self.calc_rule == "DOUBLE_K")) * self.last_k * self.this_points_above_expected
-            rating_gain_rounded = round(rating_gain)  # Rounding to the closest int
-            # self.new_rating = max(self.this_rating + rating_gain_rounded, 1)
-            self.new_rating = max(self.last_rating + rating_gain_rounded, 1)
+        {
+            CalcRule.TEMPORARY: self.apply_temporary_rule,
+            CalcRule.RATING_PERFORMANCE: self.apply_rating_performance_rule,
+            CalcRule.DOUBLE_K: self.apply_k_rule,
+            CalcRule.NORMAL: self.apply_k_rule,
+        }[self.calc_rule]()
 
         # print(str(self.id) + " | " + self.name + " | Old: " + str(self.last_rating) + " | New: " + str(self.new_rating))
 
         # For debug
         # print(str(self.id) + " | " + self.name + " | " + str(self.this_sum_oppon_ratings) + " | " + str(self.this_expected_points) + " | " + str(self.this_games))
 
+    def apply_temporary_rule(self):
+        if (self.this_games + self.last_total_games) == 0:
+            # If in a temporary player's "first tournament he gets zero points", the
+            # tournament result is discarded for rating purposes.
+            pass
+        else:
+            self.new_sum_oppon_ratings = self.last_sum_oppon_ratings + self.this_sum_oppon_ratings
+            self.new_avg_oppon_rating = self.new_sum_oppon_ratings / self.new_total_games
+            self.new_pts_against_oppon = self.last_pts_against_oppon + self.this_pts_against_oppon
+            self.new_rating = round(self.get_performance_rating(self.new_avg_oppon_rating, self.new_total_games,
+                                                                self.new_pts_against_oppon))
+
+    def apply_rating_performance_rule(self):
+        self.this_avg_oppon_rating = self.this_sum_oppon_ratings / self.this_games
+        performance_rating = self.get_performance_rating(self.this_avg_oppon_rating, self.this_games,
+                                                         self.this_pts_against_oppon)
+        # self.new_rating = round(self.this_rating + (performance_rating - self.this_rating) / 2)
+        self.new_rating = round(self.last_rating + (performance_rating - self.last_rating) / 2)
+
+    def apply_k_rule(self):
+        rating_gain = (1 + int(self.calc_rule == CalcRule.DOUBLE_K)) * self.last_k * self.this_points_above_expected
+        rating_gain_rounded = round(rating_gain)  # Rounding to the closest int
+        # self.new_rating = max(self.this_rating + rating_gain_rounded, 1)
+        self.new_rating = max(self.last_rating + rating_gain_rounded, 1)
+
     def get_calculation_rule(self, is_fexerj_tournament):
         if self.is_temp or self.is_unrated:
-            return "TEMPORARY"
+            return CalcRule.TEMPORARY
         elif self.check_rating_performance_rule() and is_fexerj_tournament:
-            return "RATING_PERFORMANCE"
+            return CalcRule.RATING_PERFORMANCE
         elif self.check_double_k_rule():
-            return "DOUBLE_K"
-        return "NORMAL"
+            return CalcRule.DOUBLE_K
+        return CalcRule.NORMAL
 
     def check_rating_performance_rule(self):
         if self.this_games < 5:
@@ -373,10 +394,10 @@ class Tournament:
             tp.last_total_games = int(fp.total_games)
             tp.last_sum_oppon_ratings = int(fp.sum_opponents_ratings)
             tp.last_pts_against_oppon = float(fp.points_against_opponents)
-            if int(fp.total_games) == 0:
+            if tp.last_total_games == 0:
                 self.unrated_keys.append(snr)
                 tp.is_unrated = True
-            elif int(fp.total_games) < _MAX_NUM_GAMES_TEMP_RATING:
+            elif tp.last_total_games < _MAX_NUM_GAMES_TEMP_RATING:
                 self.temp_keys.append(snr)
                 tp.is_temp = True
             else:
@@ -457,7 +478,7 @@ class Tournament:
                              str(tp.new_rating),
                              str(tp.new_total_games),
                              str(None if tp.this_games == 0 else float(tp.this_pts_against_oppon or 0) / tp.this_games), # To avoid division by zero
-                             str(tp.calc_rule)]
+                             str(tp.calc_rule.value) if tp.calc_rule is not None else str(None)]
                 print(_CSV_DELIMITER.join(line_list), file=new_audit_file)
 
 class SwissSingleTournament(Tournament):

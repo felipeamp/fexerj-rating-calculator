@@ -6,7 +6,7 @@ make_tournament_player factory fixture defined in conftest.py.
 import math
 import pytest
 
-from classes import TournamentPlayer, _MAX_NUM_GAMES_TEMP_RATING
+from classes import TournamentPlayer, CalcRule, _MAX_NUM_GAMES_TEMP_RATING
 
 
 # ---------------------------------------------------------------------------
@@ -270,20 +270,20 @@ class TestGetCalculationRule:
         p = make_tournament_player(is_temp=True, is_unrated=False)
         p.this_games = 5
         p.this_points_above_expected = 0.0
-        assert p.get_calculation_rule(is_fexerj_tournament=True) == "TEMPORARY"
+        assert p.get_calculation_rule(is_fexerj_tournament=True) == CalcRule.TEMPORARY
 
     def test_unrated_player_returns_temporary(self, make_tournament_player):
         p = make_tournament_player(is_temp=False, is_unrated=True)
         p.this_games = 5
         p.this_points_above_expected = 0.0
-        assert p.get_calculation_rule(is_fexerj_tournament=True) == "TEMPORARY"
+        assert p.get_calculation_rule(is_fexerj_tournament=True) == CalcRule.TEMPORARY
 
     def test_rating_performance_in_fexerj_tournament(self, make_tournament_player):
         """RP rule requires is_fexerj=True and check_rating_performance_rule()=True."""
         p = make_tournament_player(is_temp=False, is_unrated=False)
         p.this_games = 5
         p.this_points_above_expected = 1.84  # triggers RP rule
-        assert p.get_calculation_rule(is_fexerj_tournament=True) == "RATING_PERFORMANCE"
+        assert p.get_calculation_rule(is_fexerj_tournament=True) == CalcRule.RATING_PERFORMANCE
 
     def test_rating_performance_not_applied_outside_fexerj(self, make_tournament_player):
         """RP rule must NOT apply when is_fexerj=False."""
@@ -291,20 +291,20 @@ class TestGetCalculationRule:
         p.this_games = 5
         p.this_points_above_expected = 1.84
         rule = p.get_calculation_rule(is_fexerj_tournament=False)
-        assert rule != "RATING_PERFORMANCE"
+        assert rule != CalcRule.RATING_PERFORMANCE
 
     def test_double_k_rule(self, make_tournament_player):
         """Double-K triggers when RP rule doesn't but DK condition met."""
         p = make_tournament_player(is_temp=False, is_unrated=False)
         p.this_games = 4
         p.this_points_above_expected = 1.65  # triggers DK, but not RP (< 5 games)
-        assert p.get_calculation_rule(is_fexerj_tournament=True) == "DOUBLE_K"
+        assert p.get_calculation_rule(is_fexerj_tournament=True) == CalcRule.DOUBLE_K
 
     def test_normal_rule(self, make_tournament_player):
         p = make_tournament_player(is_temp=False, is_unrated=False)
         p.this_games = 4
         p.this_points_above_expected = 0.0
-        assert p.get_calculation_rule(is_fexerj_tournament=True) == "NORMAL"
+        assert p.get_calculation_rule(is_fexerj_tournament=True) == CalcRule.NORMAL
 
 
 # ---------------------------------------------------------------------------
@@ -388,7 +388,7 @@ class TestCalculateNewRating:
         p.calculate_new_rating(is_fexerj_tournament=False)
         assert p.new_rating is not None
         assert p.new_total_games == 6
-        assert p.calc_rule == "TEMPORARY"
+        assert p.calc_rule == CalcRule.TEMPORARY
 
     def test_calc_rule_set_after_calculation(self, make_tournament_player):
         opp = self._make_opponent(make_tournament_player, last_rating=1500,
@@ -399,7 +399,7 @@ class TestCalculateNewRating:
             is_unrated=False, is_temp=False,
         )
         p.calculate_new_rating(is_fexerj_tournament=True)
-        assert p.calc_rule in {"NORMAL", "DOUBLE_K", "RATING_PERFORMANCE"}
+        assert p.calc_rule in {CalcRule.NORMAL, CalcRule.DOUBLE_K, CalcRule.RATING_PERFORMANCE}
 
 
 # ---------------------------------------------------------------------------
@@ -422,7 +422,7 @@ class TestCalculateNewRatingPaths:
         p = make_tournament_player(last_rating=1500, last_total_games=50,
                                    opponents=opps, is_unrated=False, is_temp=False)
         p.calculate_new_rating(is_fexerj_tournament=False)
-        assert p.calc_rule == "NORMAL"
+        assert p.calc_rule == CalcRule.NORMAL
         assert p.new_rating == 1515
 
     def test_double_k_exact_gain(self, make_tournament_player):
@@ -435,7 +435,7 @@ class TestCalculateNewRatingPaths:
         p = make_tournament_player(last_rating=1500, last_total_games=50,
                                    opponents=opps, is_unrated=False, is_temp=False)
         p.calculate_new_rating(is_fexerj_tournament=False)
-        assert p.calc_rule == "DOUBLE_K"
+        assert p.calc_rule == CalcRule.DOUBLE_K
         assert p.new_rating == 1560
 
     def test_double_k_gain_is_exactly_double_normal_gain(self, make_tournament_player):
@@ -451,8 +451,8 @@ class TestCalculateNewRatingPaths:
 
         normal = _run([1.0, 1.0, 1.0, 0.0], is_fexerj=False)   # 3/4 → NORMAL
         double = _run([1.0, 1.0, 1.0, 1.0], is_fexerj=False)   # 4/4 → DOUBLE_K
-        assert normal.calc_rule == "NORMAL"
-        assert double.calc_rule == "DOUBLE_K"
+        assert normal.calc_rule == CalcRule.NORMAL
+        assert double.calc_rule == CalcRule.DOUBLE_K
         normal_gain = normal.new_rating - 1500
         double_gain = double.new_rating - 1500
         assert double_gain == 2 * double.last_k * round(double.this_points_above_expected * 2) / 2
@@ -467,7 +467,7 @@ class TestCalculateNewRatingPaths:
         p = make_tournament_player(last_rating=1500, last_total_games=50,
                                    opponents=opps, is_unrated=False, is_temp=False)
         p.calculate_new_rating(is_fexerj_tournament=True)
-        assert p.calc_rule == "RATING_PERFORMANCE"
+        assert p.calc_rule == CalcRule.RATING_PERFORMANCE
         performance = p.get_performance_rating(1500, 5, 5.0)
         expected_new = round(1500 + (performance - 1500) / 2)
         assert p.new_rating == expected_new
@@ -484,7 +484,7 @@ class TestCalculateNewRatingPaths:
         assert p.new_rating is not None
         assert p.new_rating > 0
         assert p.new_total_games == 1
-        assert p.calc_rule == "TEMPORARY"
+        assert p.calc_rule == CalcRule.TEMPORARY
 
 
 # ---------------------------------------------------------------------------
@@ -636,11 +636,11 @@ class TestGetCalculationRulePrecedence:
         # 5 games: RP threshold is 1.84, DK threshold is 1.43 — 2.0 satisfies both
         p.this_games = 5
         p.this_points_above_expected = 2.0
-        assert p.get_calculation_rule(is_fexerj_tournament=True) == "RATING_PERFORMANCE"
+        assert p.get_calculation_rule(is_fexerj_tournament=True) == CalcRule.RATING_PERFORMANCE
 
     def test_dk_applies_when_rp_not_triggered_outside_fexerj(self, make_tournament_player):
         """Outside a FEXERJ tournament, RP never applies; DK should trigger instead."""
         p = make_tournament_player(is_temp=False, is_unrated=False)
         p.this_games = 5
         p.this_points_above_expected = 2.0
-        assert p.get_calculation_rule(is_fexerj_tournament=False) == "DOUBLE_K"
+        assert p.get_calculation_rule(is_fexerj_tournament=False) == CalcRule.DOUBLE_K
