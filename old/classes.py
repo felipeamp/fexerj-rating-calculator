@@ -224,7 +224,7 @@ class TournamentPlayer:
         self.new_pts_against_oppon = self.last_pts_against_oppon
 
     def calculate_new_rating(self, is_fexerj_tournament):
-        # Step 1: Remove invalid opponents (unrated opponents with no usable new rating).
+        # Step 1: Discard unrated opponents with no usable new rating, or all unrated opponents if the current player is also unrated.
         invalid_opponents = []
         for k, tp_oppon in self.opponents.items():
             if tp_oppon[0].is_unrated:
@@ -241,16 +241,13 @@ class TournamentPlayer:
             self.keep_current_rating()
             return
 
-        # Step 3: Accumulate opponent ratings and points scored in this tournament.
+        # Step 3: Accumulate opponent ratings (new_rating for unrated/temp, last_rating for established) and points scored.
         self.this_sum_oppon_ratings = 0
         self.this_pts_against_oppon = 0
         for snr_opp, oppon in self.opponents.items():
-            # If the player is unrated, his unrated opponent will be moved to the invalid_opponents list in the first
-            # part of this method. When the program reaches this FOR, self.opponents will never have an unrated player
-            # if the current player is also unrated. Meaning that unrated x unrated will never happen.
             if oppon[0].is_unrated:
                 self.this_sum_oppon_ratings += oppon[0].new_rating
-            elif oppon[0].is_temp and not (self.is_unrated or self.is_temp):  # self established x oppon temporary
+            elif oppon[0].is_temp and not (self.is_unrated or self.is_temp):  # only when the current player is established
                 self.this_sum_oppon_ratings += oppon[0].new_rating
             else:
                 self.this_sum_oppon_ratings += oppon[0].last_rating
@@ -271,8 +268,7 @@ class TournamentPlayer:
         self.calc_rule = self.get_calculation_rule(is_fexerj_tournament)
         if self.calc_rule == "TEMPORARY":
             if (self.this_games + self.last_total_games) == 0:
-                # If in a temporary player's "first tournament he gets zero points", the
-                # tournament result is discarded for rating purposes.
+                # Discard the result if a temporary player scored zero in their first tournament.
                 pass
             else:
                 self.new_sum_oppon_ratings = self.last_sum_oppon_ratings + self.this_sum_oppon_ratings
