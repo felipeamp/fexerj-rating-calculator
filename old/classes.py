@@ -181,11 +181,12 @@ class TournamentPlayer:
         for i in range(len(rows)):
             cells = rows[i].find_all("td")
             cell_data = [cell.get_text().strip() for cell in cells]
-            if cell_data[0] == "Name":
+            cell_header = cell_data[0]
+            if cell_header == "Name":
                 self.name = cell_data[1]
-            elif cell_data[0] == "Starting rank":
+            elif cell_header == "Starting rank":
                 self.snr = cell_data[1]
-            elif cell_data[0] == "Ident-Number":
+            elif cell_header == "Ident-Number":
                 self.id = int(cell_data[1])
                 if not self.id:
                     manual_entry_key = f"{self.tournament.ord}.{self.snr}"
