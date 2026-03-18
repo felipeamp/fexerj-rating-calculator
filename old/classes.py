@@ -209,11 +209,12 @@ class TournamentPlayer:
                 self.add_opponent(int(id_opponent), name_opponent, result_opponent)
 
     def add_opponent(self, sno, name, result):
-        if result[-1] != "K":
-            if result[-1] == "½":
+        result_char = result[-1]
+        if result_char != "K":
+            if result_char == "½":
                 res = '0.5'
             else:
-                res = result[-1]
+                res = result_char
             self.opponents.append([sno, name, float(res)])
 
     def keep_current_rating(self):
