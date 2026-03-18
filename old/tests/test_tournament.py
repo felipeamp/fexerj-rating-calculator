@@ -7,7 +7,7 @@ import csv
 import pytest
 from unittest.mock import MagicMock, patch
 
-from classes import Tournament, TournamentPlayer, FexerjPlayer, _MAX_NUM_GAMES_TEMP_RATING, _AUDIT_FILE_HEADER
+from classes import Tournament, TournamentPlayer, FexerjPlayer, CalcRule, _MAX_NUM_GAMES_TEMP_RATING, _AUDIT_FILE_HEADER
 
 
 # ---------------------------------------------------------------------------
@@ -171,7 +171,7 @@ class TestCompletePlersInfo:
 def _make_calculated_tp(tournament, fexerj_id=100, last_rating=1500, last_total_games=50,
                          last_k=15, this_pts=1.0, this_games=1, this_sum_oppon=1500,
                          this_avg_oppon=1500.0, this_expected=0.5, this_points_above=0.5,
-                         new_rating=1508, new_total_games=51, calc_rule="NORMAL"):
+                         new_rating=1508, new_total_games=51, calc_rule=CalcRule.NORMAL):
     """Build a TournamentPlayer with all post-calculation attributes set."""
     with patch.object(TournamentPlayer, "load_player_page"):
         tp = TournamentPlayer(tournament, "http://fake")
@@ -234,7 +234,7 @@ class TestWriteTournamentAudit:
     def test_player_values_in_output(self, tmp_path):
         """Key player values should appear in the audit line."""
         t = _make_tournament()
-        t.players = {1: _make_calculated_tp(t, fexerj_id=100, new_rating=1508, calc_rule="NORMAL")}
+        t.players = {1: _make_calculated_tp(t, fexerj_id=100, new_rating=1508, calc_rule=CalcRule.NORMAL)}
         output = str(tmp_path / "audit.csv")
 
         t.write_tournament_audit(output)
