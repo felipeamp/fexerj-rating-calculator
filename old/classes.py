@@ -385,10 +385,10 @@ class Tournament:
             tp.last_total_games = int(fp.total_games)
             tp.last_sum_oppon_ratings = int(fp.sum_opponents_ratings)
             tp.last_pts_against_oppon = float(fp.points_against_opponents)
-            if int(fp.total_games) == 0:
+            if tp.last_total_games == 0:
                 self.unrated_keys.append(snr)
                 tp.is_unrated = True
-            elif int(fp.total_games) < _MAX_NUM_GAMES_TEMP_RATING:
+            elif tp.last_total_games < _MAX_NUM_GAMES_TEMP_RATING:
                 self.temp_keys.append(snr)
                 tp.is_temp = True
             else:
