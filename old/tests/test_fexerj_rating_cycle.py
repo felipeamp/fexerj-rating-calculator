@@ -107,6 +107,20 @@ class TestTournamentType:
         with pytest.raises(ValueError):
             TournamentType('XX')
 
+    def test_invalid_type_in_run_cycle_includes_tournament_number(self, tmp_path):
+        tournaments_csv = tmp_path / "tournaments.csv"
+        tournaments_csv.write_text(
+            "Id;CbxId;Name;Date;Type;IsIrt;IsFexerj\n"
+            "42;12345;Test Tournament;2025-01-01;XX;0;1\n"
+        )
+        ratings_csv = tmp_path / "ratings.csv"
+        ratings_csv.write_text(
+            "Id_No;Id_CBX;Title;Name;Rtg_Nat;ClubName;Birthday;Sex;Fed;TotalNumGames;SumOpponRating;TotalPoints\n"
+        )
+        cycle = FexerjRatingCycle(str(tournaments_csv), 42, 1, str(ratings_csv))
+        with pytest.raises(ValueError, match="42"):
+            cycle.run_cycle()
+
 
 class TestManualEntryDict:
     def test_load_when_file_missing(self, tmp_path, monkeypatch, capsys):
