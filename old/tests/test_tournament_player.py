@@ -108,6 +108,14 @@ class TestGetCurrentK:
         p = make_tournament_player(last_total_games=500)
         assert p.get_current_k() == 10
 
+    def test_empty_k_table_raises_value_error(self, make_tournament_player, monkeypatch):
+        """If _K_STARTING_NUM_GAMES is empty, get_current_k must raise ValueError."""
+        import classes
+        monkeypatch.setattr(classes, "_K_STARTING_NUM_GAMES", [])
+        p = make_tournament_player(last_total_games=10)
+        with pytest.raises(ValueError, match="K factor"):
+            p.get_current_k()
+
 
 # ---------------------------------------------------------------------------
 # get_performance_rating
