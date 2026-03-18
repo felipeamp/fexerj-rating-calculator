@@ -245,14 +245,14 @@ class TournamentPlayer:
         for i in invalid_opponents:
             del self.opponents[i]
 
-        # Step 2: Early exit if there are no valid games or if the player is unrated with zero points.
+        # Step 2: Return early if there are no valid games, or if the player is unrated and scored zero points.
         self.this_games = len(self.opponents)
         if (self.this_games == 0
                 or (self.is_unrated and self.this_pts_against_oppon == 0)):
             self.keep_current_rating()
             return
 
-        # Step 3: Accumulate opponent ratings (new_rating for unrated/temp, last_rating for established) and points scored.
+        # Step 3: Accumulate opponent ratings and points scored, using new_rating for unrated opponents and for temp opponents when the current player is established.
         self.this_sum_oppon_ratings = 0
         self.this_pts_against_oppon = 0
         for snr_opp, oppon in self.opponents.items():
