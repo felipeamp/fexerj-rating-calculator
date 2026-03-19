@@ -51,6 +51,7 @@ def _make_tournament_player(tournament=None, **kwargs):
     player.this_points_above_expected = kwargs.get("this_points_above_expected", None)
     player.new_rating = kwargs.get("new_rating", None)
     player.new_total_games = kwargs.get("new_total_games", None)
+    player.new_avg_oppon_rating = kwargs.get("new_avg_oppon_rating", None)
     player.new_sum_oppon_ratings = kwargs.get("new_sum_oppon_ratings", None)
     player.new_pts_against_oppon = kwargs.get("new_pts_against_oppon", None)
     player.calc_rule = kwargs.get("calc_rule", None)
