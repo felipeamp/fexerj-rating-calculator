@@ -9,11 +9,41 @@ Code to calculate the FEXERJ rating based on chess-results pages. Code is still 
 
 There are two CSV needed: one for players and another for tournaments to be processed. The separator should be a semicolon ";". The first CSV should have the following header/columns:
 
-`Id_No;Title;Name;Rtg_Nat;ClubName;Birthday;Sex;Fed;TotalNumGames;AvgOpponRating;TotalPoints`
+`Id_No;Id_CBX;Title;Name;Rtg_Nat;ClubName;Birthday;Sex;Fed;TotalNumGames;SumOpponRating;TotalPoints`
 
-While the second CSV should have:
+Example rows:
+
+```
+Id_No;Id_CBX;Title;Name;Rtg_Nat;ClubName;Birthday;Sex;Fed;TotalNumGames;SumOpponRating;TotalPoints
+1;1001;FM;JOAO DA SILVA;2100;CLUBE A;01/01/1985;M;BRA;350;0;0
+2;1002;;MARIA SOUZA;1650;CLUBE B;15/06/1990;F;BRA;120;0;0
+3;;;PEDRO OLIVEIRA;1450;CLUBE C;22/11/2005;M;BRA;40;0;0
+```
+
+Column notes:
+- `Id_CBX` and `Title` may be left empty
+- `Birthday` format: `DD/MM/YYYY`
+- `Sex`: `M` or `F`
+- `SumOpponRating` and `TotalPoints` accumulate across all cycles until the player becomes established
+
+The second CSV should have:
 
 `#;CR_id;Name;EndDate;Type;isIRT?;isFEXERJ?`
+
+Example rows:
+
+```
+#;CR_id;Name;EndDate;Type;isIRT?;isFEXERJ?
+1;1000001;TORNEIO ABERTO RIO 2025;10.01.2025;RR;0;0
+2;1000002;CAMPEONATO ESTADUAL SUB-12 2025;09.02.2025;SS;0;1
+3;1000003;OPEN INTERNACIONAL RIO 2025;16.03.2025;ST;1;0
+```
+
+Column notes:
+- `CR_id`: Chess Results tournament ID (from the tournament URL on chess-results.com)
+- `EndDate` format: `DD.MM.YYYY`
+- `Type`: must be one of `SS` (Swiss Single), `RR` (Round Robin), or `ST` (Swiss Team)
+- `isIRT?` and `isFEXERJ?`: boolean flags — `1` = yes, `0` = no
 
 All players in the tournaments should already be in the first CSV.
 
