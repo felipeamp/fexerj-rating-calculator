@@ -148,7 +148,7 @@ class TournamentPlayer:
         self.snr = 0
         self.name = ""
         self.id = 0
-        self.opponents = []
+        self.opponents = {}
         self.tournament = tournament
         self.load_player_page(player_url)
         self.is_unrated = None
@@ -230,7 +230,7 @@ class TournamentPlayer:
                 res = '0.5'
             else:
                 res = result_char
-            self.opponents.append([sno, name, float(res)])
+            self.opponents[sno] = [name, float(res)]
 
     def keep_current_rating(self):
         # self.new_rating = self.this_rating = self.last_rating
@@ -403,9 +403,9 @@ class Tournament:
             else:
                 self.established_keys.append(snr)
 
-        # Convert each opponents array into dict and delete unrated opponents
+        # Replace opponent name/score entries with TournamentPlayer references
         for snr, tp in self.players.items():
-            tp.opponents = {opp[0]: [self.players[opp[0]], opp[2]] for opp in tp.opponents}
+            tp.opponents = {opp_snr: [self.players[opp_snr], data[1]] for opp_snr, data in tp.opponents.items()}
 
     def calculate_players_ratings(self):
         # First, calculates unrated

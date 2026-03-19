@@ -15,33 +15,41 @@ from classes import TournamentPlayer, CalcRule, _MAX_NUM_GAMES_TEMP_RATING
 
 class TestAddOpponent:
     def test_win_added(self, make_tournament_player):
-        p = make_tournament_player(opponents=[])
+        p = make_tournament_player(opponents={})
         p.add_opponent(5, "Opponent A", "1")
         assert len(p.opponents) == 1
-        assert p.opponents[0] == [5, "Opponent A", 1.0]
+        assert p.opponents[5] == ["Opponent A", 1.0]
 
     def test_draw_added(self, make_tournament_player):
-        p = make_tournament_player(opponents=[])
+        p = make_tournament_player(opponents={})
         p.add_opponent(3, "Opponent B", "½")
-        assert p.opponents[0][2] == 0.5
+        assert p.opponents[3][1] == 0.5
 
     def test_loss_added(self, make_tournament_player):
-        p = make_tournament_player(opponents=[])
+        p = make_tournament_player(opponents={})
         p.add_opponent(7, "Opponent C", "0")
-        assert p.opponents[0][2] == 0.0
+        assert p.opponents[7][1] == 0.0
 
     def test_forfeit_ignored(self, make_tournament_player):
         """Results ending in 'K' (forfeit/absent) must not be stored."""
-        p = make_tournament_player(opponents=[])
+        p = make_tournament_player(opponents={})
         p.add_opponent(2, "Opponent D", "1K")
         assert len(p.opponents) == 0
 
     def test_multiple_opponents(self, make_tournament_player):
-        p = make_tournament_player(opponents=[])
+        p = make_tournament_player(opponents={})
         p.add_opponent(1, "A", "1")
         p.add_opponent(2, "B", "½")
         p.add_opponent(3, "C", "0")
         assert len(p.opponents) == 3
+
+    def test_duplicate_sno_overwrites(self, make_tournament_player):
+        """Adding two results for the same SNR keeps only the last entry."""
+        p = make_tournament_player(opponents={})
+        p.add_opponent(5, "Opponent A", "0")
+        p.add_opponent(5, "Opponent A", "1")
+        assert len(p.opponents) == 1
+        assert p.opponents[5][1] == 1.0
 
 
 # ---------------------------------------------------------------------------

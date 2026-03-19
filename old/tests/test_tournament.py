@@ -26,7 +26,7 @@ def _make_tp(tournament, fexerj_id, snr, opponents_list=None):
     tp.id = fexerj_id
     tp.snr = snr
     tp.name = f"Player {fexerj_id}"
-    tp.opponents = opponents_list if opponents_list is not None else []
+    tp.opponents = opponents_list if opponents_list is not None else {}
     tp.is_unrated = None
     tp.is_temp = None
     return tp
@@ -120,8 +120,8 @@ class TestCompletePlersInfo:
         fp2 = _make_fexerj_player(2, total_games=50, last_rating=1600)
         t = _make_tournament(rating_list={1: fp1, 2: fp2})
 
-        tp1 = _make_tp(t, fexerj_id=1, snr=1, opponents_list=[[2, "Player 2", 1.0]])
-        tp2 = _make_tp(t, fexerj_id=2, snr=2, opponents_list=[[1, "Player 1", 0.0]])
+        tp1 = _make_tp(t, fexerj_id=1, snr=1, opponents_list={2: ["Player 2", 1.0]})
+        tp2 = _make_tp(t, fexerj_id=2, snr=2, opponents_list={1: ["Player 1", 0.0]})
         t.players = {1: tp1, 2: tp2}
 
         t.complete_players_info()
