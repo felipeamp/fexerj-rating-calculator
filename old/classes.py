@@ -202,6 +202,9 @@ class TournamentPlayer:
         table = tables[1]
         header = table.select("tr")[0].find_all("th")
         header_data = [h.get_text().strip() for h in header]
+        id_cell_num = None
+        name_cell_num = None
+        result_cell_num = None
         for cell_num, cell in enumerate(header_data):
             if cell == 'SNo':
                 id_cell_num = cell_num
@@ -209,6 +212,8 @@ class TournamentPlayer:
                 name_cell_num = cell_num
             elif cell == 'Res.':
                 result_cell_num = cell_num
+        if id_cell_num is None or name_cell_num is None or result_cell_num is None:
+            raise ValueError("Could not find required columns ('SNo', 'Name', 'Res.') in opponents table header.")
         rows = table.find_all("tr", recursive=False)
         for i in range(1, len(rows)):
             cells = rows[i].find_all("td", recursive=False)
@@ -345,9 +350,12 @@ class TournamentPlayer:
 
     def get_current_k(self):
         # Assumes rating is not temporary
+        current_k = None
         for (k, starting_num_games) in _K_STARTING_NUM_GAMES:
             if self.last_total_games >= starting_num_games:
                 current_k = k
+        if current_k is None:
+            raise ValueError(f"Could not determine K factor for player with {self.last_total_games} total games.")
         return current_k
 
     def get_performance_rating(self, avg_oppon_rating, num_valid_games, total_num_points):
@@ -490,9 +498,12 @@ class SwissSingleTournament(Tournament):
         header = table.select("tr")[0].find_all("th")
         header_data = [h.get_text().strip() for h in header]
 
+        name_cell_num = None
         for cell_num, cell in enumerate(header_data):
             if cell == 'Name':
                 name_cell_num = cell_num
+        if name_cell_num is None:
+            raise ValueError("Could not find required column ('Name') in player list table header.")
 
         for x in range(1, len(table.select("tr"))):
             td_row = table.select("tr")[x].find_all("td")
@@ -521,12 +532,15 @@ class RoundRobinTournament(Tournament):
         header = table.select("tr")[0].find_all("th")
         header_data = [h.get_text().strip() for h in header]
 
+        name_cell_num = None
         for cell_num, cell in enumerate(header_data):
             # if cell == 'ID':
             #     id_cell_num = cell_num
             # elif cell == 'Name':
             if cell == 'Name':
                 name_cell_num = cell_num
+        if name_cell_num is None:
+            raise ValueError("Could not find required column ('Name') in player list table header.")
 
         for x in range(1, len(table.select("tr"))):
             td_row = table.select("tr")[x].find_all("td")
@@ -556,9 +570,12 @@ class SwissTeamTournament(Tournament):
         header = table.select("tr")[0].find_all("th")
         header_data = [h.get_text().strip() for h in header]
 
+        name_cell_num = None
         for cell_num, cell in enumerate(header_data):
             if cell == 'Name':
                 name_cell_num = cell_num
+        if name_cell_num is None:
+            raise ValueError("Could not find required column ('Name') in player list table header.")
 
         for x in range(1, len(table.select("tr"))):
             td_row = table.select("tr")[x].find_all("td")
