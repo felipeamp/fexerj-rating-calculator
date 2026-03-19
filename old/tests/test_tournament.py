@@ -3,11 +3,14 @@
 Uses the make_tournament and make_tournament_player fixtures from conftest.py.
 Network calls are patched out via load_player_page.
 """
+import contextlib
 import csv
 import pytest
 from unittest.mock import MagicMock, patch
 
-from classes import Tournament, TournamentPlayer, FexerjPlayer, CalcRule, _MAX_NUM_GAMES_TEMP_RATING, _AUDIT_FILE_HEADER
+from classes import (Tournament, TournamentPlayer, FexerjPlayer, CalcRule,
+                     _MAX_NUM_GAMES_TEMP_RATING, _AUDIT_FILE_HEADER,
+                     SwissSingleTournament, RoundRobinTournament, SwissTeamTournament)
 
 
 # ---------------------------------------------------------------------------
@@ -421,3 +424,130 @@ class TestCalculatePlayersRatings:
         assert tp1.new_rating is not None
         assert tp2.new_rating is not None
         assert tp3.new_rating is not None
+
+
+# ---------------------------------------------------------------------------
+# get_player_list_url
+# ---------------------------------------------------------------------------
+
+def _make_subclass_tournament(cls):
+    rc = MagicMock()
+    data = ["1", "12345", "Test", "2025-01-01", "SS", "0", "1"]
+    return cls(rc, data)
+
+
+class TestGetPlayerListUrl:
+    def test_base_tournament_raises_not_implemented(self):
+        t = _make_tournament()
+        with pytest.raises(NotImplementedError):
+            t.get_player_list_url()
+
+    def test_swiss_single_url(self):
+        t = _make_subclass_tournament(SwissSingleTournament)
+        url = t.get_player_list_url()
+        assert "12345" in url
+        assert "art=0" in url
+        assert "turdet=YES" in url
+
+    def test_round_robin_url(self):
+        t = _make_subclass_tournament(RoundRobinTournament)
+        url = t.get_player_list_url()
+        assert "12345" in url
+        assert "art=0" in url
+        assert "turdet" not in url
+        assert "zeilen" not in url
+
+    def test_swiss_team_url(self):
+        t = _make_subclass_tournament(SwissTeamTournament)
+        url = t.get_player_list_url()
+        assert "12345" in url
+        assert "art=16" in url
+        assert "zeilen=99999" in url
+
+
+# ---------------------------------------------------------------------------
+# load_player_list
+# ---------------------------------------------------------------------------
+
+def _player_list_html(hrefs):
+    """Minimal HTML with a CRs1 table and a Name column."""
+    rows = "".join(
+        f'<tr><td><a href="{href}">Player</a></td></tr>'
+        for href in hrefs
+    )
+    return f'<html><body><table class="CRs1"><tr><th>Name</th></tr>{rows}</table></body></html>'
+
+
+@contextlib.contextmanager
+def _mock_http(html_content):
+    """Patch requests.Session so that post() returns html_content."""
+    mock_resp = MagicMock()
+    mock_resp.content = html_content.encode("utf-8")
+    with patch("classes.requests.Session") as mock_cls:
+        mock_session = MagicMock()
+        mock_cls.return_value.__enter__.return_value = mock_session
+        mock_cls.return_value.__exit__.return_value = False
+        mock_session.post.return_value = mock_resp
+        yield
+
+
+def _stub_load_player_page(self, url):
+    """Replaces TournamentPlayer.load_player_page; sets snr from the URL query string."""
+    from urllib.parse import urlparse, parse_qs
+    snr_list = parse_qs(urlparse(url).query).get("snr")
+    self.snr = int(snr_list[0]) if snr_list else 0
+
+
+class TestLoadPlayerList:
+    def test_players_populated_by_snr(self):
+        t = _make_subclass_tournament(SwissSingleTournament)
+        html = _player_list_html([
+            "https://chess-results.com/p.aspx?snr=3",
+            "https://chess-results.com/p.aspx?snr=7",
+        ])
+        with _mock_http(html):
+            with patch.object(TournamentPlayer, "load_player_page", _stub_load_player_page):
+                t.load_player_list()
+        assert set(t.players.keys()) == {3, 7}
+
+    def test_player_with_snr_zero_is_excluded(self):
+        t = _make_subclass_tournament(SwissSingleTournament)
+        html = _player_list_html([
+            "https://chess-results.com/p.aspx?snr=0",
+            "https://chess-results.com/p.aspx?snr=5",
+        ])
+        with _mock_http(html):
+            with patch.object(TournamentPlayer, "load_player_page", _stub_load_player_page):
+                t.load_player_list()
+        assert 0 not in t.players
+        assert 5 in t.players
+
+    def test_missing_name_column_raises_value_error(self):
+        t = _make_subclass_tournament(SwissSingleTournament)
+        html = '<html><body><table class="CRs1"><tr><th>Rank</th></tr></table></body></html>'
+        with _mock_http(html):
+            with pytest.raises(ValueError, match="Name"):
+                t.load_player_list()
+
+    def test_empty_table_yields_no_players(self):
+        t = _make_subclass_tournament(SwissSingleTournament)
+        html = _player_list_html([])
+        with _mock_http(html):
+            with patch.object(TournamentPlayer, "load_player_page", _stub_load_player_page):
+                t.load_player_list()
+        assert t.players == {}
+
+    def test_load_player_list_calls_correct_url(self):
+        """load_player_list must POST to the URL returned by get_player_list_url."""
+        t = _make_subclass_tournament(SwissSingleTournament)
+        expected_url = t.get_player_list_url()
+        html = _player_list_html([])
+        with patch("classes.requests.Session") as mock_cls:
+            mock_session = MagicMock()
+            mock_cls.return_value.__enter__.return_value = mock_session
+            mock_cls.return_value.__exit__.return_value = False
+            mock_session.post.return_value = MagicMock(content=html.encode())
+            with patch.object(TournamentPlayer, "load_player_page", _stub_load_player_page):
+                t.load_player_list()
+        posted_url = mock_session.post.call_args[0][0]
+        assert posted_url == expected_url

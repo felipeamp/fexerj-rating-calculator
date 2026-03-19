@@ -462,6 +462,41 @@ class Tournament:
                              str(player.points_against_opponents)]
                 print(_CSV_DELIMITER.join(line_list), file=new_rating_list)
 
+    def get_player_list_url(self):
+        raise NotImplementedError
+
+    def load_player_list(self):
+        url = self.get_player_list_url()
+        formdata = {"__VIEWSTATE": "",
+                    "__VIEWSTATEGENERATOR": "",
+                    "cb_alleDetails": "Show+tournament+details"}
+
+        with requests.Session() as s:
+            s.headers = {"User-Agent": "Mozilla/5.0"}
+            res = s.post(url, data=formdata)
+
+        soup = BeautifulSoup(res.content, 'html.parser')
+        table = soup.find("table", attrs={"class": "CRs1"})
+        header = table.select("tr")[0].find_all("th")
+        header_data = [h.get_text().strip() for h in header]
+
+        name_cell_num = None
+        for cell_num, cell in enumerate(header_data):
+            if cell == 'Name':
+                name_cell_num = cell_num
+        if name_cell_num is None:
+            raise ValueError("Could not find required column ('Name') in player list table header.")
+
+        rows = table.select("tr")
+        for x in range(1, len(rows)):
+            td_row = rows[x].find_all("td")
+            player_url = td_row[name_cell_num].find("a").get("href")
+            parsed = urlparse(player_url)
+            snr = int(parse_qs(parsed.query).get('snr')[0])
+            self.players[snr] = TournamentPlayer(self, player_url)
+            if self.players[snr].snr == 0:
+                del self.players[snr]
+
     def write_tournament_audit(self, tournament_audit_filepath):
         #TODO Create pydoc to document corner cases on audit file creation
         # https://github.com/felipeamp/fexerj-rating-calculator/issues/22
@@ -490,106 +525,15 @@ class Tournament:
                 print(_CSV_DELIMITER.join(line_list), file=new_audit_file)
 
 class SwissSingleTournament(Tournament):
-    def load_player_list(self):
-        # Access Chess Results (Starting Rank
-        url = f"{_URLDOMAIN}/tnr{self.id}.aspx?lan=1&art=0&turdet=YES"
-        formdata = {"__VIEWSTATE": "",
-                    "__VIEWSTATEGENERATOR": "",
-                    "cb_alleDetails": "Show+tournament+details"}
-
-        with requests.Session() as s:
-            s.headers = {"User-Agent": "Mozilla/5.0"}
-            res = s.post(url, data=formdata)
-
-        soup = BeautifulSoup(res.content, 'html.parser')
-        table = soup.find("table", attrs={"class": "CRs1"})
-        header = table.select("tr")[0].find_all("th")
-        header_data = [h.get_text().strip() for h in header]
-
-        name_cell_num = None
-        for cell_num, cell in enumerate(header_data):
-            if cell == 'Name':
-                name_cell_num = cell_num
-        if name_cell_num is None:
-            raise ValueError("Could not find required column ('Name') in player list table header.")
-
-        for x in range(1, len(table.select("tr"))):
-            td_row = table.select("tr")[x].find_all("td")
-            url = td_row[name_cell_num].find("a").get("href")
-            parsed = urlparse(url)
-            snr = int(parse_qs(parsed.query).get('snr')[0])
-            self.players[snr] = TournamentPlayer(self, url)
-            if self.players[snr].snr == 0:
-                del self.players[snr]
+    def get_player_list_url(self):
+        return f"{_URLDOMAIN}/tnr{self.id}.aspx?lan=1&art=0&turdet=YES"
 
 
 class RoundRobinTournament(Tournament):
-    def load_player_list(self):
-        # Access Chess Results (Starting Rank
-        url = f"{_URLDOMAIN}/tnr{self.id}.aspx?lan=1&art=0"
-        formdata = {"__VIEWSTATE": "",
-                    "__VIEWSTATEGENERATOR": "",
-                    "cb_alleDetails": "Show+tournament+details"}
-
-        with requests.Session() as s:
-            s.headers = {"User-Agent": "Mozilla/5.0"}
-            res = s.post(url, data=formdata)
-
-        soup = BeautifulSoup(res.content, 'html.parser')
-        table = soup.find("table", attrs={"class": "CRs1"})
-        header = table.select("tr")[0].find_all("th")
-        header_data = [h.get_text().strip() for h in header]
-
-        name_cell_num = None
-        for cell_num, cell in enumerate(header_data):
-            # if cell == 'ID':
-            #     id_cell_num = cell_num
-            # elif cell == 'Name':
-            if cell == 'Name':
-                name_cell_num = cell_num
-        if name_cell_num is None:
-            raise ValueError("Could not find required column ('Name') in player list table header.")
-
-        for x in range(1, len(table.select("tr"))):
-            td_row = table.select("tr")[x].find_all("td")
-            url = td_row[name_cell_num].find("a").get("href")
-            parsed = urlparse(url)
-            snr = int(parse_qs(parsed.query).get('snr')[0])
-
-            self.players[snr] = TournamentPlayer(self, url)
-            if self.players[snr].snr == 0:
-                del self.players[snr]
+    def get_player_list_url(self):
+        return f"{_URLDOMAIN}/tnr{self.id}.aspx?lan=1&art=0"
 
 
 class SwissTeamTournament(Tournament):
-    def load_player_list(self):
-        # Access Chess Results (Starting Rank
-        url = f"{_URLDOMAIN}/tnr{self.id}.aspx?lan=1&art=16&zeilen=99999"
-        formdata = {"__VIEWSTATE": "",
-                    "__VIEWSTATEGENERATOR": "",
-                    "cb_alleDetails": "Show+tournament+details"}
-
-        with requests.Session() as s:
-            s.headers = {"User-Agent": "Mozilla/5.0"}
-            res = s.post(url, data=formdata)
-
-        soup = BeautifulSoup(res.content, 'html.parser')
-        table = soup.find("table", attrs={"class": "CRs1"})
-        header = table.select("tr")[0].find_all("th")
-        header_data = [h.get_text().strip() for h in header]
-
-        name_cell_num = None
-        for cell_num, cell in enumerate(header_data):
-            if cell == 'Name':
-                name_cell_num = cell_num
-        if name_cell_num is None:
-            raise ValueError("Could not find required column ('Name') in player list table header.")
-
-        for x in range(1, len(table.select("tr"))):
-            td_row = table.select("tr")[x].find_all("td")
-            url = td_row[name_cell_num].find("a").get("href")
-            parsed = urlparse(url)
-            snr = int(parse_qs(parsed.query).get('snr')[0])
-            self.players[snr] = TournamentPlayer(self, url)
-            if self.players[snr].snr == 0:
-                del self.players[snr]
+    def get_player_list_url(self):
+        return f"{_URLDOMAIN}/tnr{self.id}.aspx?lan=1&art=16&zeilen=99999"
