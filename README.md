@@ -24,7 +24,7 @@ Column notes:
 - `Id_CBX` and `Title` may be left empty
 - `Birthday` format: `DD/MM/YYYY`
 - `Sex`: `M` or `F`
-- `SumOpponRating` and `TotalPoints` accumulate across all cycles until the player becomes established
+- `SumOpponRating` and `TotalPoints` accumulate across all cycles until the player becomes established, at which point both are set back to zero
 
 The second CSV should have:
 
