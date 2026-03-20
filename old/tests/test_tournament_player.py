@@ -51,6 +51,16 @@ class TestAddOpponent:
         assert len(p.opponents) == 1
         assert p.opponents[5][1] == 1.0
 
+    def test_empty_result_raises(self, make_tournament_player):
+        p = make_tournament_player(opponents={})
+        with pytest.raises(ValueError, match="Unexpected result"):
+            p.add_opponent(1, "Opponent A", "")
+
+    def test_unrecognised_result_raises(self, make_tournament_player):
+        p = make_tournament_player(opponents={})
+        with pytest.raises(ValueError, match="Unexpected result"):
+            p.add_opponent(1, "Opponent A", "X")
+
 
 # ---------------------------------------------------------------------------
 # keep_current_rating
