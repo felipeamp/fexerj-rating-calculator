@@ -82,6 +82,7 @@ class FexerjRatingCycle:
         self.manual_entries = {}
 
     def run_cycle(self):
+        self.load_manual_entry_dict()
         with open(self.tournaments_file, 'r') as f:
             reader = csv.reader(f, delimiter=_CSV_DELIMITER)
             self.tournaments = list(reader)[1:]
