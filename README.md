@@ -1,13 +1,15 @@
 # fexerj-rating-calculator
 
-Code to calculate the FEXERJ rating based on chess-results pages. Code is still somewhat rough. Some functionality, documentation and unit/integration testing are missing.
+Code to calculate the FEXERJ rating. Tournament data can be read either from chess-results.com (web method) or directly from Swiss Manager binary files (binary method).
 
 
 # How to use
 
 ## Pre-conditions
 
-There are two CSV needed: one for players and another for tournaments to be processed. The separator should be a semicolon ";". The first CSV should have the following header/columns:
+There are two CSV files needed: one for players and another for tournaments to be processed. The separator should be a semicolon ";".
+
+The players CSV should have the following header/columns:
 
 `Id_No;Id_CBX;Title;Name;Rtg_Nat;ClubName;Birthday;Sex;Fed;TotalNumGames;SumOpponRating;TotalPoints`
 
@@ -26,52 +28,82 @@ Column notes:
 - `Sex`: `M` or `F`
 - `SumOpponRating` and `TotalPoints` accumulate across all cycles until the player becomes established, at which point both are set back to zero
 
-The second CSV should have:
+The tournaments CSV should have:
 
-`#;CR_id;Name;EndDate;Type;isIRT?;isFEXERJ?`
+`#;CR_id;Name;EndDate;Type;isIRT?;isFEXERJ?;CLUB?`
 
 Example rows:
 
 ```
-#;CR_id;Name;EndDate;Type;isIRT?;isFEXERJ?
-1;1000001;TORNEIO ABERTO RIO 2025;10.01.2025;RR;0;0
-2;1000002;CAMPEONATO ESTADUAL SUB-12 2025;09.02.2025;SS;0;1
-3;1000003;OPEN INTERNACIONAL RIO 2025;16.03.2025;ST;1;0
+#;CR_id;Name;EndDate;Type;isIRT?;isFEXERJ?;CLUB?
+1;1000001;TORNEIO ABERTO RIO 2025;10.01.2025;RR;0;0;0
+2;1000002;CAMPEONATO ESTADUAL SUB-12 2025;09.02.2025;SS;0;1;1
+3;1000003;OPEN INTERNACIONAL RIO 2025;16.03.2025;ST;1;0;0
 ```
 
 Column notes:
 - `CR_id`: Chess Results tournament ID (from the tournament URL on chess-results.com)
 - `EndDate` format: `DD.MM.YYYY`
-- `Type`: must be one of `SS` (Swiss Single), `RR` (Round Robin), or `ST` (Swiss Team)
-- `isIRT?` and `isFEXERJ?`: boolean flags — `1` = yes, `0` = no
+- `Type`: must be one of `SS` (Swiss System), `RR` (Round Robin), or `ST` (Swiss Team)
+- `isIRT?`, `isFEXERJ?`, `CLUB?`: boolean flags — `1` = yes, `0` = no
 
-All players in the tournaments should already be in the first CSV.
+All players in the tournaments should already be in the players CSV.
+
+## Data source methods
+
+### Web method (default)
+
+The program scrapes tournament data from chess-results.com. An internet connection is required.
+
+### Binary method
+
+The program reads tournament data directly from Swiss Manager binary export files (`.TUNX` for Swiss System, `.TURX` for Round Robin, `.TUMX` for Swiss Team). No internet connection is needed.
+
+Binary files must be placed in the same directory as the tournaments CSV and named using the following convention:
+
+`<#>-<CR_id>.TUNX` / `<#>-<CR_id>.TURX` / `<#>-<CR_id>.TUMX`
+
+where `<#>` is the tournament's order number in the CSV and `<CR_id>` is its Chess Results ID. For example, tournament 1 with CR ID 1333998 should be exported as `1-1333998.TUNX`.
+
+The parser performs format validation on every file it reads and will raise an error or warning if the Swiss Manager binary format appears to have changed.
 
 ## How to run
 
-The user should run the following command:
+```
+python fexerj-rating-calculator.py --tournaments <tournament_list_file> --players <players_list_file> --first <first_tournament_to_run> --count <number_of_tournaments_to_run> [--method web|binary]
+```
 
-`python fexerj-rating-calculator.py --tournaments <tournament_list_file> --players <players_list_file> --first <first_tournament_to_run> --count <number_of_tournaments_to_run>`
+- `--count` is optional and defaults to `1`
+- `--method` is optional and defaults to `web`
 
-`--count` is optional and defaults to `1`.
+The program will create one intermediate players' list file for each tournament:
+`RatingList_after_<number>.csv`
 
-The program will create one intermediate players' list file for each tournament in the following format:
-`RatingList_after_<number of the tournament>.csv`
+For each tournament it will also create an audit file:
+`Audit_of_Tournament_<number>.csv`
 
-Also, for each tournament, the program will create an audit file with the most important variables for the rating calculation in the following name format: `Audit_of_Tournament_<number of the tournament>.csv`
-
-The program will also create a JSON file with all the players for which the ID was entered manually by the user. This is to avoid having to enter them again in a rerun. This file needs to be deleted by the user if the tournaments' file change.
+The program creates a JSON file (`manual_entry_list.json`) to persist player IDs entered manually during a run, so they do not need to be re-entered on reruns. Delete this file if the tournaments CSV changes.
 
 
 ## Command examples
 
-To run the first 25 tournaments of the file:
+Run the first 25 tournaments using web scraping:
 
-```python fexerj-rating-calculator.py --tournaments tournaments.csv --players players.csv --first 1 --count 25```
+```bash
+python fexerj-rating-calculator.py --tournaments tournaments.csv --players players.csv --first 1 --count 25
+```
 
-To run only the 11th tournament of the file (for example, if you find some issue with a given tournament in Chess Results page, fix it and want to rerun from that point of the cycle):
+Run the first 15 tournaments using binary files:
 
-```python fexerj-rating-calculator.py --tournaments tournaments.csv --players players.csv --first 11 --count 1```
+```bash
+python fexerj-rating-calculator.py --tournaments tournaments.csv --players players.csv --first 1 --count 15 --method binary
+```
+
+Rerun only the 11th tournament (e.g. after fixing data on chess-results.com):
+
+```bash
+python fexerj-rating-calculator.py --tournaments tournaments.csv --players players.csv --first 11 --count 1
+```
 
 
 ## IDE setup (PyCharm)
@@ -115,5 +147,4 @@ python3 -m pytest old/tests/test_tournament_player.py::TestGetCurrentK::test_ent
 ## TODO
 
 * Error handling for common mistakes and errors
-* Split code in modules
 * Integration testing

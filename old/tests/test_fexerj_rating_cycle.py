@@ -16,6 +16,14 @@ class TestFexerjRatingCycleInit:
         assert cycle.cbx_to_fexerj == {}
         assert cycle.manual_entries == {}
 
+    def test_default_method_is_web(self):
+        cycle = FexerjRatingCycle("tournaments.csv", 1, 1, "ratings.csv")
+        assert cycle.method == 'web'
+
+    def test_binary_method_stored(self):
+        cycle = FexerjRatingCycle("tournaments.csv", 1, 1, "ratings.csv", method='binary')
+        assert cycle.method == 'binary'
+
 
 class TestGetRatingList:
     def test_loads_all_players(self, rating_list_csv_path):

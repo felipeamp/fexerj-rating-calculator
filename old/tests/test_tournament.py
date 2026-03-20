@@ -5,12 +5,15 @@ Network calls are patched out via load_player_page.
 """
 import contextlib
 import csv
+import pathlib
 import pytest
 from unittest.mock import MagicMock, patch
 
 from classes import (Tournament, TournamentPlayer, FexerjPlayer, CalcRule,
                      _MAX_NUM_GAMES_TEMP_RATING, _AUDIT_FILE_HEADER,
                      SwissSingleTournament, RoundRobinTournament, SwissTeamTournament)
+
+_BINARY_DIR = pathlib.Path(__file__).parent / 'binary'
 
 
 # ---------------------------------------------------------------------------
@@ -551,3 +554,66 @@ class TestLoadPlayerList:
                 t.load_player_list()
         posted_url = mock_session.post.call_args[0][0]
         assert posted_url == expected_url
+
+
+# ---------------------------------------------------------------------------
+# load_player_list_from_binary
+# ---------------------------------------------------------------------------
+
+# SNR 18 (Newton Gomes) has no FEXERJ ID in the T1 binary — required for all T1 tests
+_T1_MANUAL = {'1.18': 9750}
+
+
+def _make_binary_tournament(tunx_path, is_irt=0, rating_list=None, cbx_to_fexerj=None,
+                             manual_entries=None):
+    """Build a Tournament wired for binary loading, with tunx_file set directly."""
+    rc = MagicMock()
+    rc.method = 'binary'
+    rc.rating_list = rating_list or {}
+    rc.cbx_to_fexerj = cbx_to_fexerj or {}
+    rc.manual_entries = manual_entries or {}
+    rc.tournaments_file = str(_BINARY_DIR / 'dummy.csv')  # only the directory is used
+    data = ["1", "0", "Test", "2025-01-01", "SS", str(is_irt), "0"]
+    t = Tournament(rc, data)
+    t.tunx_file = str(tunx_path)  # override with the actual test fixture path
+    return t
+
+
+class TestLoadPlayerListFromBinary:
+    def test_players_populated_from_real_file(self):
+        t = _make_binary_tournament(str(_BINARY_DIR / 'swiss_system_18players.TUNX'), manual_entries=_T1_MANUAL)
+        t.load_player_list_from_binary()
+        assert len(t.players) == 18
+
+    def test_player_names_set(self):
+        t = _make_binary_tournament(str(_BINARY_DIR / 'swiss_system_18players.TUNX'), manual_entries=_T1_MANUAL)
+        t.load_player_list_from_binary()
+        assert all(tp.name for tp in t.players.values())
+
+    def test_opponents_populated_from_games(self):
+        t = _make_binary_tournament(str(_BINARY_DIR / 'swiss_system_18players.TUNX'), manual_entries=_T1_MANUAL)
+        t.load_player_list_from_binary()
+        # SNR 1 (Sergio) must have played some games
+        assert len(t.players[1].opponents) > 0
+
+    def test_opponent_scores_sum_to_one_per_game(self):
+        """For every game (A vs B), score_A + score_B must equal 1.0."""
+        t = _make_binary_tournament(str(_BINARY_DIR / 'swiss_system_18players.TUNX'), manual_entries=_T1_MANUAL)
+        t.load_player_list_from_binary()
+        for snr_a, tp_a in t.players.items():
+            for snr_b, (_, score_a) in tp_a.opponents.items():
+                score_b = t.players[snr_b].opponents[snr_a][1]
+                assert abs(score_a + score_b - 1.0) < 0.001
+
+    def test_missing_tunx_file_raises(self):
+        t = _make_binary_tournament('')
+        with pytest.raises((ValueError, FileNotFoundError)):
+            t.load_player_list_from_binary()
+
+    def test_manual_entry_resolves_missing_id(self):
+        t = _make_binary_tournament(
+            str(_BINARY_DIR / 'swiss_system_18players.TUNX'),
+            manual_entries={'1.18': 9750},  # SNR 18 has no ID in binary
+        )
+        t.load_player_list_from_binary()
+        assert t.players[18].id == 9750

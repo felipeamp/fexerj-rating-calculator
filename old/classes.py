@@ -1,14 +1,14 @@
 import json
 import math
 import os
-import unicodedata
 from urllib.parse import urlparse, parse_qs
 import csv
 from enum import Enum
 
 import requests
 from bs4 import BeautifulSoup
-from rapidfuzz import fuzz
+from tunx_parser import parse_tunx
+from name_utils import normalize_name, name_similarity
 
 _CSV_DELIMITER = ';'
 _URLDOMAIN = "https://s3.chess-results.com"
@@ -54,15 +54,6 @@ class CalcRule(Enum):
 _NAME_SIMILARITY_ACCEPT_THRESHOLD = 85
 _NAME_SIMILARITY_WARN_THRESHOLD = 60
 
-def normalize_name(name):
-    """Lowercase, strip accents, remove commas, sort tokens — for name comparison."""
-    nfkd = unicodedata.normalize('NFKD', name)
-    ascii_name = nfkd.encode('ascii', 'ignore').decode('ascii')
-    tokens = sorted(ascii_name.lower().replace(',', '').split())
-    return ' '.join(tokens)
-
-def name_similarity(name_a, name_b):
-    return fuzz.ratio(normalize_name(name_a), normalize_name(name_b))
 
 _K_STARTING_NUM_GAMES = [(30, 0),  # grampo
                          (25, _MAX_NUM_GAMES_TEMP_RATING),  # 15
@@ -70,7 +61,7 @@ _K_STARTING_NUM_GAMES = [(30, 0),  # grampo
                          (10, 80)]
 
 class FexerjRatingCycle:
-    def __init__(self, tournaments_file, first_item, items_to_process, initial_rating_filepath):
+    def __init__(self, tournaments_file, first_item, items_to_process, initial_rating_filepath, method='web'):
         self.tournaments_file = tournaments_file
         self.first_item = first_item
         self.items_to_process = items_to_process
@@ -80,6 +71,7 @@ class FexerjRatingCycle:
         self.tournaments = {}
         self.cbx_to_fexerj = {}
         self.manual_entries = {}
+        self.method = method
 
     def run_cycle(self):
         self.load_manual_entry_dict()
@@ -163,14 +155,15 @@ class FexerjPlayer:
 
 
 class TournamentPlayer:
-    def __init__(self, tournament, player_url):
+    def __init__(self, tournament, player_url=None):
         # Example of player_url: https://chess-results.com/tnr1043710.aspx?lan=1&art=9&fed=BRA&turdet=YES&flag=30&snr=1
         self.snr = 0
         self.name = ""
         self.id = 0
         self.opponents = {}
         self.tournament = tournament
-        self.load_player_page(player_url)
+        if player_url is not None:
+            self.load_player_page(player_url)
         self.is_unrated = None
         self.is_temp = None
         self.last_k = None
@@ -269,6 +262,39 @@ class TournamentPlayer:
             raise ValueError(f"Unexpected result '{result_char}' for opponent {name} (sno={sno})")
         if result_map[result_char] is not None:
             self.opponents[sno] = [name, result_map[result_char]]
+
+    def resolve_id(self, raw_id):
+        """Return the FEXERJ ID as int. Prompts for manual entry when raw_id is empty."""
+        fexerj_id = int(raw_id) if raw_id else 0
+        if fexerj_id:
+            return fexerj_id
+        manual_entry_key = f"{self.tournament.ord}.{self.snr}"
+        if manual_entry_key in self.tournament.rating_cycle.manual_entries:
+            return self.tournament.rating_cycle.manual_entries[manual_entry_key]
+        print()
+        print('\tPlayer with unknown ID: %s' % self.name)
+        rating_list = self.tournament.rating_cycle.rating_list
+        while True:
+            fexerj_id = int(input('\tPlease enter this player\'s ID: '))
+            warning = None
+            if fexerj_id not in rating_list:
+                warning = '\tWarning: ID %d not found in the ratings file.' % fexerj_id
+            else:
+                rated_name = rating_list[fexerj_id].name
+                similarity = name_similarity(self.name, rated_name)
+                if similarity < _NAME_SIMILARITY_WARN_THRESHOLD:
+                    warning = '\tWarning! Names look very different! Source: "%s" vs. Ratings File: "%s".' % (self.name, rated_name)
+                elif similarity < _NAME_SIMILARITY_ACCEPT_THRESHOLD:
+                    warning = '\tNote. Names differ slightly! Source: "%s" vs. Ratings File: "%s".' % (self.name, rated_name)
+            if warning:
+                print(warning)
+                if input('\tContinue anyway? (y/n): ').strip().lower() != 'y':
+                    continue
+            break
+        print()
+        self.tournament.rating_cycle.manual_entries[manual_entry_key] = fexerj_id
+        self.tournament.rating_cycle.write_manual_entry_dict()
+        return fexerj_id
 
     def keep_current_rating(self):
         # self.new_rating = self.this_rating = self.last_rating
@@ -424,6 +450,10 @@ class Tournament:
         self.type = tournament[4]
         self.is_irt = int(tournament[5])
         self.is_fexerj = int(tournament[6])
+        _ext_map = {'SS': 'TUNX', 'RR': 'TURX', 'ST': 'TUMX'}
+        _ext = _ext_map.get(tournament[4], 'TUNX')
+        _dir = os.path.dirname(os.path.abspath(rating_cycle.tournaments_file))
+        self.tunx_file = os.path.join(_dir, f"{tournament[0]}-{tournament[1]}.{_ext}")
         self.players = {}
         self.unrated_keys = []
         self.temp_keys = []
@@ -504,6 +534,12 @@ class Tournament:
         raise NotImplementedError
 
     def load_player_list(self):
+        if self.rating_cycle.method == 'binary':
+            self.load_player_list_from_binary()
+        else:
+            self._load_player_list_from_web()
+
+    def _load_player_list_from_web(self):
         url = self.get_player_list_url()
         formdata = {"__VIEWSTATE": "",
                     "__VIEWSTATEGENERATOR": "",
@@ -534,6 +570,23 @@ class Tournament:
             self.players[snr] = TournamentPlayer(self, player_url)
             if self.players[snr].snr == 0:
                 del self.players[snr]
+
+    def load_player_list_from_binary(self):
+        bio, games = parse_tunx(self.tunx_file)
+
+        # Build TournamentPlayer objects from biographical data
+        for snr, info in bio.items():
+            tp = TournamentPlayer(self)
+            tp.snr = snr
+            tp.name = info['name']
+            tp.id = tp.resolve_id(info['fexerj_id'])
+            self.players[snr] = tp
+
+        # Populate opponents from pairing results
+        for snr_a, snr_b, score_a in games:
+            if snr_a in self.players and snr_b in self.players:
+                self.players[snr_a].opponents[snr_b] = [self.players[snr_b].name, score_a]
+                self.players[snr_b].opponents[snr_a] = [self.players[snr_a].name, 1.0 - score_a]
 
     def write_tournament_audit(self, tournament_audit_filepath):
         #TODO Create pydoc to document corner cases on audit file creation
