@@ -167,6 +167,7 @@ class TournamentPlayer:
         self.this_points_above_expected = None
         self.new_rating = None
         self.new_total_games = None
+        self.new_avg_oppon_rating = None
         self.new_sum_oppon_ratings = None
         self.new_pts_against_oppon = None
         self.calc_rule = None
