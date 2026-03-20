@@ -51,7 +51,9 @@ All players in the tournaments should already be in the first CSV.
 
 The user should run the following command:
 
-`python fexerj-rating-calculator.py <tournament_list_file> <first_torunament_to_run> <number_of_tournaments_to_run> <players_list_file>`
+`python fexerj-rating-calculator.py --tournaments <tournament_list_file> --players <players_list_file> --first <first_tournament_to_run> --count <number_of_tournaments_to_run>`
+
+`--count` is optional and defaults to `1`.
 
 The program will create one intermediate players' list file for each tournament in the following format:
 `RatingList_after_<number of the tournament>.csv`
@@ -65,11 +67,11 @@ The program will also create a JSON file with all the players for which the ID w
 
 To run the first 25 tournaments of the file:
 
-```python fexerj-rating-calculator.py tournaments.csv 1 25 players.csv```
+```python fexerj-rating-calculator.py --tournaments tournaments.csv --players players.csv --first 1 --count 25```
 
-To run only the 11th tournaments of the file (for example, if you find some issue with a given tournament in Chess Results page, fix it and want to rerun from that point of the cycle):
+To run only the 11th tournament of the file (for example, if you find some issue with a given tournament in Chess Results page, fix it and want to rerun from that point of the cycle):
 
-```python fexerj-rating-calculator.py tournaments.csv 11 1 players.csv```
+```python fexerj-rating-calculator.py --tournaments tournaments.csv --players players.csv --first 11 --count 1```
 
 
 ## IDE setup (PyCharm)
