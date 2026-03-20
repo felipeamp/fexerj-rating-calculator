@@ -218,21 +218,20 @@ class TournamentPlayer:
                         while True:
                             self.id = int(input('\tPlease enter this player\'s ID: '))
                             rating_list = self.tournament.rating_cycle.rating_list
+                            warning = None
                             if self.id not in rating_list:
-                                print('\tWarning: ID %d not found in the ratings file.' % self.id)
-                                if input('\tContinue anyway? (y/n): ').strip().lower() != 'y':
-                                    continue
+                                warning = '\tWarning: ID %d not found in the ratings file.' % self.id
                             else:
                                 rated_name = rating_list[self.id].name
                                 similarity = name_similarity(self.name, rated_name)
                                 if similarity < _NAME_SIMILARITY_WARN_THRESHOLD:
-                                    print('\tWarning: names look very different — tournament: "%s" / ratings file: "%s".' % (self.name, rated_name))
-                                    if input('\tContinue anyway? (y/n): ').strip().lower() != 'y':
-                                        continue
+                                    warning = '\tWarning: names look very different — tournament: "%s" / ratings file: "%s".' % (self.name, rated_name)
                                 elif similarity < _NAME_SIMILARITY_ACCEPT_THRESHOLD:
-                                    print('\tNote: names differ slightly — tournament: "%s" / ratings file: "%s".' % (self.name, rated_name))
-                                    if input('\tContinue anyway? (y/n): ').strip().lower() != 'y':
-                                        continue
+                                    warning = '\tNote: names differ slightly — tournament: "%s" / ratings file: "%s".' % (self.name, rated_name)
+                            if warning:
+                                print(warning)
+                                if input('\tContinue anyway? (y/n): ').strip().lower() != 'y':
+                                    continue
                             break
                         print()
                         self.tournament.rating_cycle.manual_entries[manual_entry_key] = self.id
