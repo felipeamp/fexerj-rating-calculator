@@ -13,5 +13,4 @@ args = parser.parse_args()
 new_cycle = FexerjRatingCycle(args.tournaments, args.first, args.count, args.players)
 new_cycle.load_manual_entry_dict()
 new_cycle.run_cycle()
-new_cycle.write_manual_entry_dict()
 

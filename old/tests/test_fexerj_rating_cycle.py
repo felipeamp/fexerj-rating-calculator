@@ -142,3 +142,16 @@ class TestManualEntryDict:
         cycle2.load_manual_entry_dict()
         assert cycle2.manual_entries == {"1.5": 999, "2.3": 888}
         assert "found" in capsys.readouterr().out
+
+    def test_write_manual_entry_dict_called_after_each_manual_entry(self, tmp_path, monkeypatch):
+        """write_manual_entry_dict should be called immediately after each manual entry is added."""
+        monkeypatch.chdir(tmp_path)
+        cycle = FexerjRatingCycle("t.csv", 1, 1, "r.csv")
+
+        cycle.manual_entries["1.1"] = 111
+        cycle.write_manual_entry_dict()
+
+        # Simulate abort — create a new cycle and load without ever calling write again
+        cycle2 = FexerjRatingCycle("t.csv", 1, 1, "r.csv")
+        cycle2.load_manual_entry_dict()
+        assert cycle2.manual_entries == {"1.1": 111}
