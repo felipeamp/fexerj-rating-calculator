@@ -1,12 +1,14 @@
 import json
 import math
 import os
+import unicodedata
 from urllib.parse import urlparse, parse_qs
 import csv
 from enum import Enum
 
 import requests
 from bs4 import BeautifulSoup
+from rapidfuzz import fuzz
 
 _CSV_DELIMITER = ';'
 _URLDOMAIN = "https://s3.chess-results.com"
@@ -45,6 +47,23 @@ class CalcRule(Enum):
     RATING_PERFORMANCE = 'RATING_PERFORMANCE'
     DOUBLE_K = 'DOUBLE_K'
     NORMAL = 'NORMAL'
+# Thresholds for comparing a manually entered player ID against the name in the ratings file.
+# score >= ACCEPT : names are close enough, accepted silently.
+# score >= WARN   : names differ slightly, user is asked to confirm.
+# score <  WARN   : names look very different (likely a wrong ID), user is warned more strongly.
+_NAME_SIMILARITY_ACCEPT_THRESHOLD = 85
+_NAME_SIMILARITY_WARN_THRESHOLD = 60
+
+def normalize_name(name):
+    """Lowercase, strip accents, remove commas, sort tokens — for name comparison."""
+    nfkd = unicodedata.normalize('NFKD', name)
+    ascii_name = nfkd.encode('ascii', 'ignore').decode('ascii')
+    tokens = sorted(ascii_name.lower().replace(',', '').split())
+    return ' '.join(tokens)
+
+def name_similarity(name_a, name_b):
+    return fuzz.ratio(normalize_name(name_a), normalize_name(name_b))
+
 _K_STARTING_NUM_GAMES = [(30, 0),  # grampo
                          (25, _MAX_NUM_GAMES_TEMP_RATING),  # 15
                          (15, 40),
@@ -195,9 +214,28 @@ class TournamentPlayer:
                     else:
                         print()
                         print('\tPlayer with unknown ID: %s' % self.name)
-                        self.id = int(input('\tPlease enter this player\'s ID: '))
+                        while True:
+                            self.id = int(input('\tPlease enter this player\'s ID: '))
+                            rating_list = self.tournament.rating_cycle.rating_list
+                            if self.id not in rating_list:
+                                print('\tWarning: ID %d not found in the ratings file.' % self.id)
+                                if input('\tContinue anyway? (y/n): ').strip().lower() != 'y':
+                                    continue
+                            else:
+                                rated_name = rating_list[self.id].name
+                                similarity = name_similarity(self.name, rated_name)
+                                if similarity < _NAME_SIMILARITY_WARN_THRESHOLD:
+                                    print('\tWarning: names look very different — tournament: "%s" / ratings file: "%s".' % (self.name, rated_name))
+                                    if input('\tContinue anyway? (y/n): ').strip().lower() != 'y':
+                                        continue
+                                elif similarity < _NAME_SIMILARITY_ACCEPT_THRESHOLD:
+                                    print('\tNote: names differ slightly — tournament: "%s" / ratings file: "%s".' % (self.name, rated_name))
+                                    if input('\tContinue anyway? (y/n): ').strip().lower() != 'y':
+                                        continue
+                            break
                         print()
                         self.tournament.rating_cycle.manual_entries[manual_entry_key] = self.id
+                        self.tournament.rating_cycle.write_manual_entry_dict()
         # Get Opponents and Results
         table = tables[1]
         header = table.select("tr")[0].find_all("th")
