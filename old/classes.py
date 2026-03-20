@@ -187,6 +187,7 @@ class TournamentPlayer:
         self.this_points_above_expected = None
         self.new_rating = None
         self.new_total_games = None
+        self.new_avg_oppon_rating = None
         self.new_sum_oppon_ratings = None
         self.new_pts_against_oppon = None
         self.calc_rule = None
@@ -262,13 +263,12 @@ class TournamentPlayer:
                 self.add_opponent(int(id_opponent), name_opponent, result_opponent)
 
     def add_opponent(self, sno, name, result):
-        result_char = result[-1]
-        if result_char != "K":
-            if result_char == "½":
-                res = '0.5'
-            else:
-                res = result_char
-            self.opponents[sno] = [name, float(res)]
+        result_map = {"1": 1.0, "0": 0.0, "½": 0.5, "K": None}
+        result_char = result[-1] if result else ""
+        if result_char not in result_map:
+            raise ValueError(f"Unexpected result '{result_char}' for opponent {name} (sno={sno})")
+        if result_map[result_char] is not None:
+            self.opponents[sno] = [name, result_map[result_char]]
 
     def keep_current_rating(self):
         # self.new_rating = self.this_rating = self.last_rating
