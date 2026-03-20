@@ -225,9 +225,9 @@ class TournamentPlayer:
                                 rated_name = rating_list[self.id].name
                                 similarity = name_similarity(self.name, rated_name)
                                 if similarity < _NAME_SIMILARITY_WARN_THRESHOLD:
-                                    warning = '\tWarning: names look very different — tournament: "%s" / ratings file: "%s".' % (self.name, rated_name)
+                                    warning = '\tWarning! Names look very different! Chess Results: "%s" vs. Ratings File: "%s".' % (self.name, rated_name)
                                 elif similarity < _NAME_SIMILARITY_ACCEPT_THRESHOLD:
-                                    warning = '\tNote: names differ slightly — tournament: "%s" / ratings file: "%s".' % (self.name, rated_name)
+                                    warning = '\tNote. Names differ slightly! Chess Results: "%s" vs. Ratings File: "%s".' % (self.name, rated_name)
                             if warning:
                                 print(warning)
                                 if input('\tContinue anyway? (y/n): ').strip().lower() != 'y':
