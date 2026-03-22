@@ -5,6 +5,21 @@ Code to calculate the FEXERJ rating. Tournament data can be read either from che
 
 # How to use
 
+## Recommended folder structure
+
+Place all input files in the same folder and run the program from there:
+
+```
+my_cycle/
+├── tournaments.csv
+├── players.csv
+├── 1-1000001.TUNX   ← binary files, only needed for the binary method
+├── 2-1000002.TUNX
+└── ...
+```
+
+The program will write its output files (`RatingList_after_N.csv`, `Audit_of_Tournament_N.csv`, `manual_entry_list.json`) to the same folder as the tournaments CSV.
+
 ## Pre-conditions
 
 There are two CSV files needed: one for players and another for tournaments to be processed. The separator should be a semicolon ";".

@@ -72,6 +72,8 @@ class FexerjRatingCycle:
         self.cbx_to_fexerj = {}
         self.manual_entries = {}
         self.method = method
+        self._input_dir = os.path.dirname(os.path.abspath(tournaments_file))
+        self._manual_entry_path = os.path.join(self._input_dir, 'manual_entry_list.json')
 
     def run_cycle(self):
         self.load_manual_entry_dict()
@@ -125,15 +127,15 @@ class FexerjRatingCycle:
                     self.cbx_to_fexerj[int(row[1])] = int(row[0])
 
     def load_manual_entry_dict(self):
-        if os.path.exists('manual_entry_list.json'):
+        if os.path.exists(self._manual_entry_path):
             print("manual_entry_list.json found. Loading...")
-            with open('manual_entry_list.json', 'r') as manual_entry_dict_file:
+            with open(self._manual_entry_path, 'r') as manual_entry_dict_file:
                 self.manual_entries = json.load(manual_entry_dict_file)
         else:
             print("manual_entry_list.json not found. A new one will be created if needed.")
 
     def write_manual_entry_dict(self):
-        with open('manual_entry_list.json', 'w') as manual_entry_dict_file:
+        with open(self._manual_entry_path, 'w') as manual_entry_dict_file:
             manual_entry_dict_file.write(json.dumps(self.manual_entries))
 
 
