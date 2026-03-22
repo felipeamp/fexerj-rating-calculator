@@ -30,22 +30,22 @@ Column notes:
 
 The tournaments CSV should have:
 
-`#;CR_id;Name;EndDate;Type;isIRT?;isFEXERJ?;CLUB?`
+`#;CR_id;Name;EndDate;Type;isIRT?;isFEXERJ?`
 
 Example rows:
 
 ```
-#;CR_id;Name;EndDate;Type;isIRT?;isFEXERJ?;CLUB?
-1;1000001;TORNEIO ABERTO RIO 2025;10.01.2025;RR;0;0;0
-2;1000002;CAMPEONATO ESTADUAL SUB-12 2025;09.02.2025;SS;0;1;1
-3;1000003;OPEN INTERNACIONAL RIO 2025;16.03.2025;ST;1;0;0
+#;CR_id;Name;EndDate;Type;isIRT?;isFEXERJ?
+1;1000001;TORNEIO ABERTO RIO 2025;10.01.2025;RR;0;0
+2;1000002;CAMPEONATO ESTADUAL SUB-12 2025;09.02.2025;SS;0;1
+3;1000003;OPEN INTERNACIONAL RIO 2025;16.03.2025;ST;1;0
 ```
 
 Column notes:
 - `CR_id`: Chess Results tournament ID (from the tournament URL on chess-results.com)
 - `EndDate` format: `DD.MM.YYYY`
 - `Type`: must be one of `SS` (Swiss System), `RR` (Round Robin), or `ST` (Swiss Team)
-- `isIRT?`, `isFEXERJ?`, `CLUB?`: boolean flags — `1` = yes, `0` = no
+- `isIRT?`, `isFEXERJ?`: boolean flags — `1` = yes, `0` = no
 
 All players in the tournaments should already be in the players CSV.
 
