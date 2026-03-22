@@ -277,9 +277,10 @@ class TestValidate:
 # parse_tunx — integration tests against real binary files
 # ---------------------------------------------------------------------------
 
-TUNX_T1  = str(_BINARY_DIR / 'swiss_system_18players.TUNX')
-TURX_T6  = str(_BINARY_DIR / 'round_robin_6players.TURX')
-TUMX_T8  = str(_BINARY_DIR / 'swiss_team_93players.TUMX')
+TUNX_T1   = str(_BINARY_DIR / 'swiss_system_18players.TUNX')
+TURX_T6   = str(_BINARY_DIR / 'round_robin_6players.TURX')
+TUMX_T8   = str(_BINARY_DIR / 'swiss_team_93players.TUMX')
+TUNX_T23  = str(_BINARY_DIR / 'swiss_system_51players.TUNX')
 
 
 class TestParseTunxIntegration:
@@ -347,3 +348,14 @@ class TestParseTunxIntegration:
             assert snr_b != _BYE_SNR
             assert snr_a != 0
             assert snr_b != 0
+
+    def test_t23_all_players_parsed_despite_asterisk_prefix(self):
+        # Tournament 23 contains 5 records with a '*' field before the abbreviation;
+        # all 51 players must be parsed correctly.
+        bio, _ = parse_tunx(TUNX_T23)
+        assert len(bio) == 51
+
+    def test_t23_asterisk_prefix_player_has_correct_id(self):
+        # SNR 36 (Leandro de Queiros Vieira) is one of the '*'-prefix players.
+        bio, _ = parse_tunx(TUNX_T23)
+        assert bio[36]['fexerj_id'] == '5523'
