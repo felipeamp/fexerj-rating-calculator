@@ -165,6 +165,9 @@ def _parse_bio_section(data):
             first, offset = _read_field(data, offset)
             last, offset = _read_field(data, offset)
             offset = _skip_null(data, offset)
+            # Some records have a 1-char '*' field before the abbreviation; skip it
+            if offset + 4 <= bio_end and struct.unpack_from('<H', data, offset)[0] == 1 and data[offset + 2:offset + 4] == b'\x2a\x00':
+                offset += 4
             _abbrev, offset = _read_field(data, offset)   # no null after abbrev
             _title, offset = _read_field(data, offset)    # no null after title (empty for non-titled players)
             player_id, offset = _read_field(data, offset)
