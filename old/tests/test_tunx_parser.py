@@ -10,6 +10,7 @@ from tunx_parser import (
     _is_printable_utf16,
     _skip_to_binary_block,
     _find_next_record,
+    _parse_bio_section,
     _validate,
     parse_tunx,
     _BIO_MARKER,
@@ -168,8 +169,55 @@ class TestFindNextRecord:
 
 
 # ---------------------------------------------------------------------------
-# parse_tunx — integration tests against real binary files
+# _parse_bio_section
 # ---------------------------------------------------------------------------
+
+def _make_player_bytes(first, last, abbrev, title, player_id, club, fed, asterisk_prefix=False):
+    """Build a minimal bio record in Swiss Manager binary format."""
+    record = _utf16_field(first) + _utf16_field(last)
+    if asterisk_prefix:
+        record += _utf16_field('*')           # 1-char marker; no null after last name
+    else:
+        record += b'\x00\x00'                 # null separator after last name
+    record += _utf16_field(abbrev)
+    record += _utf16_field(title)
+    record += _utf16_field(player_id)
+    record += b'\x00\x00'                     # null after player_id
+    record += b'\x00\x00\x00\x00'            # 4-byte numeric padding
+    record += _utf16_field(club)
+    record += _utf16_field(fed)
+    record += b'\x00\x00'                     # null after fed
+    record += b'\x00' * 40                    # binary block (triggers _skip_to_binary_block)
+    return record
+
+
+class TestParseBioSection:
+    def _wrap(self, player_bytes):
+        """Wrap player bytes in BIO/PAIRING markers so _parse_bio_section can find them."""
+        return _BIO_MARKER + player_bytes + _PAIRING_MARKER
+
+    def test_normal_record_parsed(self):
+        data = self._wrap(_make_player_bytes('Jose', 'Silva', 'J. Jose', '', '1234', 'Clube', 'BRA'))
+        bio = _parse_bio_section(data)
+        assert len(bio) == 1
+        assert bio[1]['fexerj_id'] == '1234'
+        assert bio[1]['name'] == 'Silva, Jose'
+
+    def test_asterisk_prefix_record_parsed(self):
+        data = self._wrap(_make_player_bytes('Leandro', 'Vieira', 'L. Leandro', '', '5523', 'Clube', 'BRA', asterisk_prefix=True))
+        bio = _parse_bio_section(data)
+        assert len(bio) == 1
+        assert bio[1]['fexerj_id'] == '5523'
+
+    def test_asterisk_and_normal_records_both_parsed(self):
+        player1 = _make_player_bytes('Ivan', 'Frolov', 'F. Ivan', '', '5221', 'Cmun', 'RUS')
+        player2 = _make_player_bytes('Leandro', 'Vieira', 'L. Leandro', '', '5523', 'Cfcsn', 'BRA', asterisk_prefix=True)
+        data = self._wrap(player1 + player2)
+        bio = _parse_bio_section(data)
+        assert len(bio) == 2
+        assert bio[1]['fexerj_id'] == '5221'
+        assert bio[2]['fexerj_id'] == '5523'
+
 
 # ---------------------------------------------------------------------------
 # _validate
