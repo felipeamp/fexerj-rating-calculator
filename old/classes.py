@@ -203,35 +203,7 @@ class TournamentPlayer:
             elif cell_header == "Starting rank":
                 self.snr = cell_data[1]
             elif cell_header == "Ident-Number":
-                self.id = int(cell_data[1])
-                if not self.id:
-                    manual_entry_key = f"{self.tournament.ord}.{self.snr}"
-                    if manual_entry_key in self.tournament.rating_cycle.manual_entries:
-                        self.id = self.tournament.rating_cycle.manual_entries[manual_entry_key]
-                    else:
-                        print()
-                        print('\tPlayer with unknown ID: %s' % self.name)
-                        while True:
-                            self.id = int(input('\tPlease enter this player\'s ID: '))
-                            rating_list = self.tournament.rating_cycle.rating_list
-                            warning = None
-                            if self.id not in rating_list:
-                                warning = '\tWarning: ID %d not found in the ratings file.' % self.id
-                            else:
-                                rated_name = rating_list[self.id].name
-                                similarity = name_similarity(self.name, rated_name)
-                                if similarity < _NAME_SIMILARITY_WARN_THRESHOLD:
-                                    warning = '\tWarning! Names look very different! Chess Results: "%s" vs. Ratings File: "%s".' % (self.name, rated_name)
-                                elif similarity < _NAME_SIMILARITY_ACCEPT_THRESHOLD:
-                                    warning = '\tNote. Names differ slightly! Chess Results: "%s" vs. Ratings File: "%s".' % (self.name, rated_name)
-                            if warning:
-                                print(warning)
-                                if input('\tContinue anyway? (y/n): ').strip().lower() != 'y':
-                                    continue
-                            break
-                        print()
-                        self.tournament.rating_cycle.manual_entries[manual_entry_key] = self.id
-                        self.tournament.rating_cycle.write_manual_entry_dict()
+                self.id = self.resolve_id(cell_data[1])
         # Get Opponents and Results
         table = tables[1]
         header = table.select("tr")[0].find_all("th")
