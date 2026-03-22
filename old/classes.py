@@ -72,8 +72,8 @@ class FexerjRatingCycle:
         self.cbx_to_fexerj = {}
         self.manual_entries = {}
         self.method = method
-        self._input_dir = os.path.dirname(os.path.abspath(tournaments_file))
-        self._manual_entry_path = os.path.join(self._input_dir, 'manual_entry_list.json')
+        self.input_dir = os.path.dirname(os.path.abspath(tournaments_file))
+        self.manual_entry_path = os.path.join(self.input_dir, 'manual_entry_list.json')
 
     def run_cycle(self):
         self.load_manual_entry_dict()
@@ -127,15 +127,15 @@ class FexerjRatingCycle:
                     self.cbx_to_fexerj[int(row[1])] = int(row[0])
 
     def load_manual_entry_dict(self):
-        if os.path.exists(self._manual_entry_path):
+        if os.path.exists(self.manual_entry_path):
             print("manual_entry_list.json found. Loading...")
-            with open(self._manual_entry_path, 'r') as manual_entry_dict_file:
+            with open(self.manual_entry_path, 'r') as manual_entry_dict_file:
                 self.manual_entries = json.load(manual_entry_dict_file)
         else:
             print("manual_entry_list.json not found. A new one will be created if needed.")
 
     def write_manual_entry_dict(self):
-        with open(self._manual_entry_path, 'w') as manual_entry_dict_file:
+        with open(self.manual_entry_path, 'w') as manual_entry_dict_file:
             manual_entry_dict_file.write(json.dumps(self.manual_entries))
 
 
@@ -424,10 +424,10 @@ class Tournament:
         self.type = tournament[4]
         self.is_irt = int(tournament[5])
         self.is_fexerj = int(tournament[6])
-        _ext_map = {'SS': 'TUNX', 'RR': 'TURX', 'ST': 'TUMX'}
-        _ext = _ext_map.get(tournament[4], 'TUNX')
-        _dir = os.path.dirname(os.path.abspath(rating_cycle.tournaments_file))
-        self.tunx_file = os.path.join(_dir, f"{tournament[0]}-{tournament[1]}.{_ext}")
+        ext_map = {'SS': 'TUNX', 'RR': 'TURX', 'ST': 'TUMX'}
+        ext = ext_map.get(tournament[4], 'TUNX')
+        tournament_dir = os.path.dirname(os.path.abspath(rating_cycle.tournaments_file))
+        self.tunx_file = os.path.join(tournament_dir, f"{tournament[0]}-{tournament[1]}.{ext}")
         self.players = {}
         self.unrated_keys = []
         self.temp_keys = []
@@ -511,9 +511,9 @@ class Tournament:
         if self.rating_cycle.method == 'binary':
             self.load_player_list_from_binary()
         else:
-            self._load_player_list_from_web()
+            self.load_player_list_from_web()
 
-    def _load_player_list_from_web(self):
+    def load_player_list_from_web(self):
         url = self.get_player_list_url()
         formdata = {"__VIEWSTATE": "",
                     "__VIEWSTATEGENERATOR": "",
